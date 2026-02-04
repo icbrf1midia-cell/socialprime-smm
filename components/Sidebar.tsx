@@ -5,11 +5,14 @@ import { supabase } from '../lib/supabase';
 
 const Sidebar: React.FC = () => {
   const [profile, setProfile] = React.useState<{ full_name: string; balance: number } | null>(null);
+  const [userEmail, setUserEmail] = React.useState<string | null>(null);
+  const ADMIN_EMAIL = 'brunomeueditor@gmail.com';
 
   React.useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setUserEmail(user.email || null);
         const { data } = await supabase
           .from('profiles')
           .select('full_name, balance')
@@ -27,7 +30,8 @@ const Sidebar: React.FC = () => {
     { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
     { name: 'Histórico', icon: 'list_alt', path: '/history' },
     { name: 'Minha Conta', icon: 'person', path: '/account' },
-    { name: 'Config API', icon: 'api', path: '/api' },
+    // Only show Config API for admin
+    ...(userEmail === ADMIN_EMAIL ? [{ name: 'Config API', icon: 'api', path: '/api' }] : []),
   ];
 
   return (
@@ -66,19 +70,23 @@ const Sidebar: React.FC = () => {
           </NavLink>
         ))}
 
-        <p className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 mt-6">Administração</p>
-        <NavLink
-          to="/admin"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${isActive
-              ? 'bg-primary text-white font-medium shadow-md shadow-primary/20'
-              : 'text-slate-600 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-            }`
-          }
-        >
-          <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
-          <span className="text-sm font-medium">Painel Admin</span>
-        </NavLink>
+        {userEmail === ADMIN_EMAIL && (
+          <>
+            <p className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 mt-6">Administração</p>
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${isActive
+                  ? 'bg-primary text-white font-medium shadow-md shadow-primary/20'
+                  : 'text-slate-600 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                }`
+              }
+            >
+              <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+              <span className="text-sm font-medium">Painel Admin</span>
+            </NavLink>
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#0f1520]">
