@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+
+interface Service {
+  service_id: number;
+  name: string;
+  category: string;
+  rate: number;
+  min: number;
+  max: number;
+  type: string;
+}
+
+const NewOrder: React.FC = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1000);
+  const [link, setLink] = useState('');
+
+  // Fetch Services on Load
+  useEffect(() => {
+    const fetchServices = async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*');
+
+      if (!error && data) {
+        setServices(data);
+        const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category)));
+        setCategories(uniqueCategories);
+      }
+      setLoading(false);
+    };
+
+    fetchServices();
+  }, []);
+
+  const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
+
+  // Calculate Total
+  // Rate is usually per 1000.
+  const total = selectedService
+    ? (quantity / 1000) * selectedService.rate
+    : 0;
+
+  // Filter services by selected category
+  const filteredServices = services.filter(s => s.category === selectedCategory);
+
+  return (
+    <div className="max-w-7xl mx-auto w-full">
+      <div className="mb-8">
+        <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
+        <p className="text-text-secondary text-base max-w-2xl">
+          Selecione a categoria e o serviço para impulsionar suas redes sociais. Entregas automáticas e seguras.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Order Form (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="bg-card-dark rounded-xl border border-border-dark p-6 shadow-sm">
+            <div className="grid gap-6">
+
+              {/* Category Select */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span className="material-symbols-outlined text-primary text-[18px]">category</span>
+                  Categoria
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 pr-10 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none"
+                    value={selectedCategory}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setSelectedServiceId(''); // Reset service when category changes
+                    }}
+                  >
+                    <option value="" disabled>Selecione uma categoria...</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+                    <span className="material-symbols-outlined">expand_more</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Select */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span className="material-symbols-outlined text-primary text-[18px]">design_services</span>
+                  Serviço
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 pr-10 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none"
+                    value={selectedServiceId}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                    disabled={!selectedCategory}
+                  >
+                    <option value="" disabled>Escolha o tipo de serviço...</option>
+                    {filteredServices.map(service => (
+                      <option key={service.service_id} value={service.service_id}>
+                        {service.service_id} - {service.name} - R$ {Number(service.rate).toFixed(2)}/k
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+                    <span className="material-symbols-outlined">expand_more</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Box */}
+              {selectedService && (
+                <div className="bg-[#137fec]/10 border border-primary/20 rounded-lg p-4 flex gap-4 items-start">
+                  <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+                  <div className="text-sm text-text-secondary space-y-1">
+                    <p className="text-white font-medium">Detalhes do Serviço (ID: {selectedService.service_id})</p>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+                      <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Min/Max: <span className="text-white">{selectedService.min} / {selectedService.max}</span></li>
+                      <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Tipo: <span className="text-white">{selectedService.type}</span></li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Link Input */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span className="material-symbols-outlined text-primary text-[18px]">link</span>
+                  Link
+                </label>
+                <input
+                  className="w-full rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none placeholder:text-text-secondary/50"
+                  placeholder="https://instagram.com/seuusuario"
+                  type="url"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                />
+              </div>
+
+              {/* Quantity Input */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span className="material-symbols-outlined text-primary text-[18px]">numbers</span>
+                  Quantidade
+                </label>
+                <div className="relative">
+                  <input
+                    className="w-full rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none placeholder:text-text-secondary/50"
+                    placeholder="Ex: 1000"
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-text-secondary px-1">
+                  <span>Mínimo: <b className="text-white">{selectedService?.min || 100}</b></span>
+                  <span>Máximo: <b className="text-white">{selectedService?.max || '∞'}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Summary (Sticky) */}
+        <div className="lg:col-span-4 relative">
+          <div className="sticky top-6 space-y-6">
+            <div className="bg-card-dark rounded-xl border border-border-dark p-6 shadow-lg flex flex-col h-full">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-dark">
+                <h3 className="text-lg font-bold text-white">Resumo do Pedido</h3>
+                <span className="material-symbols-outlined text-text-secondary">receipt_long</span>
+              </div>
+              <div className="space-y-4 flex-1">
+                <div className="flex justify-between items-start gap-4">
+                  <span className="text-sm text-text-secondary">Serviço:</span>
+                  <span className="text-sm font-medium text-white text-right">{selectedService ? selectedService.name : 'Selecione um serviço'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-secondary">Preço por 1k:</span>
+                  <span className="text-sm font-medium text-white">{selectedService ? `R$ ${Number(selectedService.rate).toFixed(2)}` : '-'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-secondary">Quantidade:</span>
+                  <span className="text-sm font-medium text-white">{quantity.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="mt-8 pt-6 border-t border-border-dark">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-base font-medium text-text-secondary">Total a Pagar</span>
+                  <span className="text-3xl font-black text-primary">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                {/* TODO: Fetch real balance */}
+                <p className="text-xs text-right text-text-secondary mb-6">Saldo disponível: R$ 0,00</p>
+                <button className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed" disabled={!selectedService || total === 0}>
+                  Finalizar Pedido
+                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewOrder;
