@@ -8,6 +8,8 @@ const Dashboard: React.FC = () => {
   const [providerBalance, setProviderBalance] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [ordersCount, setOrdersCount] = useState<number>(0);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,28 +35,17 @@ const Dashboard: React.FC = () => {
           .eq('user_id', user.id);
 
         if (count !== null) setOrdersCount(count);
-      }
 
-      // Fetch Provider Balance via Proxy
-      try {
-        const apiKey = import.meta.env.VITE_PROVIDER_API_KEY;
-        const apiUrl = 'https://agenciapopular.com/api/v2';
+        // Fetch Recent Orders
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-        if (apiKey) {
-          const { data: response, error } = await supabase.functions.invoke('smm-proxy', {
-            body: {
-              url: apiUrl,
-              key: apiKey,
-              action: 'balance',
-            },
-          });
-
-          if (!error && response && response.balance) {
-            setProviderBalance(parseFloat(response.balance));
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch provider balance", e);
+        if (orders) setRecentOrders(orders);
+        setLoadingOrders(false);
       }
     };
     fetchData();
@@ -175,7 +166,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Orders Table */}
-      < div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden" >
+      <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">Últimos Pedidos Realizados</h3>
           <Link to="/history" className="text-sm text-primary hover:text-primary-hover font-medium">Ver tudo</Link>
@@ -192,37 +183,48 @@ const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-border-dark">
-              <tr className="hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors">
-                <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">#48291</td>
-                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">Seguidores Instagram BR</td>
-                <td className="px-6 py-4">
-                  <span className="text-primary truncate max-w-[150px] block">instagram.com/lo...</span>
-                </td>
-                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">1.000</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    Concluído
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors">
-                <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">#48292</td>
-                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">Curtidas TikTok</td>
-                <td className="px-6 py-4">
-                  <span className="text-primary truncate max-w-[150px] block">tiktok.com/@vid...</span>
-                </td>
-                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">500</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                    Processando
-                  </span>
-                </td>
-              </tr>
+              {loadingOrders ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                    Carregando pedidos...
+                  </td>
+                </tr>
+              ) : recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                    Nenhum pedido realizado
+                  </td>
+                </tr>
+              ) : (
+                recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors">
+                    <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">#{order.id.slice(0, 8)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                      {order.service_id}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-primary truncate max-w-[150px] block" title={order.link}>
+                        {order.link}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{order.quantity}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : order.status === 'processing'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                        {order.status === 'completed' ? 'Concluído' : order.status === 'processing' ? 'Processando' : order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      </div >
-
+      </div>
     </div >
   );
 };
