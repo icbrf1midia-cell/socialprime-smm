@@ -6,18 +6,39 @@ import { supabase } from '../lib/supabase';
 const Dashboard: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [providerBalance, setProviderBalance] = useState<number | null>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [ordersCount, setOrdersCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         if (user.email) setUserEmail(user.email);
+
+        // Fetch User Balance from Supabase
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setUserBalance(profile.balance);
+        }
+
+        // Fetch User Orders Count
+        const { count } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        if (count !== null) setOrdersCount(count);
       }
 
       // Fetch Provider Balance via Proxy
       try {
         const apiKey = import.meta.env.VITE_PROVIDER_API_KEY;
-        const apiUrl = 'https://agenciapopular.com/api/v2'; // Hardcoded or fetch from DB config if stored there. Using default for now.
+        const apiUrl = 'https://agenciapopular.com/api/v2';
 
         if (apiKey) {
           const { data: response, error } = await supabase.functions.invoke('smm-proxy', {
@@ -70,7 +91,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-3xl font-black text-white">
               {providerBalance !== null
                 ? `R$ ${providerBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                : 'Carregando...'}
+                : '---'}
             </h3>
             <span className="text-xs text-text-secondary ml-2">(Agência Popular)</span>
           </div>
@@ -79,14 +100,18 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Spent */}
+        {/* User Balance (Replaces Total Spent) */}
         <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-4xl text-blue-500">attach_money</span>
+            <span className="material-symbols-outlined text-4xl text-blue-500">account_balance</span>
           </div>
-          <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Total Gasto</p>
-          <h3 className="text-3xl font-black text-white">R$ 0,00</h3>
-          <p className="text-xs text-text-secondary mt-2">Investido em crescimento.</p>
+          <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Seu Saldo Disponível</p>
+          <h3 className="text-3xl font-black text-white">
+            {userBalance !== null
+              ? `R$ ${userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+              : 'R$ 0,00'}
+          </h3>
+          <p className="text-xs text-text-secondary mt-2">Saldo em conta Supabase</p>
         </div>
 
         {/* Total Orders */}
@@ -95,14 +120,14 @@ const Dashboard: React.FC = () => {
             <span className="material-symbols-outlined text-4xl text-purple-500">shopping_cart</span>
           </div>
           <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Total de Pedidos</p>
-          <h3 className="text-3xl font-black text-white">0</h3>
+          <h3 className="text-3xl font-black text-white">{ordersCount}</h3>
           <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">trending_up</span>
-            <span>0 novos hoje</span>
+            <span>Atualizado agora</span>
           </p>
         </div>
 
-        {/* Active Services */}
+        {/* Active Services (Placeholder for now as logic is complex) */}
         <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-4xl text-orange-500">bolt</span>
