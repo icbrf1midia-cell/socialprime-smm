@@ -11,11 +11,32 @@ const Dashboard: React.FC = () => {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
+  const [activeOrdersCount, setActiveOrdersCount] = useState<number>(0);
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         if (user.email) setUserEmail(user.email);
+
+        // CONDITIONAL: Fetch Provider Balance ONLY for Admin
+        if (user.email === 'brunomeueditor@gmail.com') {
+          try {
+            const { data: balanceData, error: proxyError } = await supabase.functions.invoke('smm-proxy', {
+              body: {
+                url: 'https://agenciapopular.com/api/v2', // Default API URL
+                key: import.meta.env.VITE_PROVIDER_API_KEY,
+                action: 'balance',
+              },
+            });
+
+            if (!proxyError && balanceData && balanceData.balance) {
+              setProviderBalance(parseFloat(balanceData.balance));
+            }
+          } catch (err) {
+            console.error('Error fetching provider balance:', err);
+          }
+        }
 
         // Fetch User Balance from Supabase
         const { data: profile } = await supabase
@@ -28,13 +49,22 @@ const Dashboard: React.FC = () => {
           setUserBalance(profile.balance);
         }
 
-        // Fetch User Orders Count
+        // Fetch Total Orders Count
         const { count } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
 
         if (count !== null) setOrdersCount(count);
+
+        // Fetch Active Orders Count (Processing)
+        const { count: activeCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'processing');
+
+        if (activeCount !== null) setActiveOrdersCount(activeCount);
 
         // Fetch Recent Orders
         const { data: orders } = await supabase
@@ -50,6 +80,12 @@ const Dashboard: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  // Compute active orders count from recent orders (approximation) or use separate count if needed
+  // For now, let's just count 'processing' in the recent list for the simple card, or fetch it properly if we want accuracy.
+  // The user requested a "Simple card", I will assume `activeOrdersCount` based on `recentOrders` is better than a new fetch for now to keep it fast, 
+  // OR since I have "ordersCount", I can maybe filter? No, that's total.
+  // Let's rely on the rendering logic:
 
   return (
     <div className="max-w-7xl mx-auto w-full">
@@ -72,24 +108,37 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Balance Card (Provider) */}
-        <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-4xl text-emerald-500">account_balance_wallet</span>
+        {/* Conditional Card: Provider Balance (Admin) OR Active Orders (Client) */}
+        {userEmail === 'brunomeueditor@gmail.com' ? (
+          <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <span className="material-symbols-outlined text-4xl text-emerald-500">account_balance_wallet</span>
+            </div>
+            <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Saldo da Agência (API)</p>
+            <div className="flex items-baseline gap-1">
+              <h3 className="text-3xl font-black text-white">
+                {providerBalance !== null
+                  ? `R$ ${providerBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                  : '---'}
+              </h3>
+              <span className="text-xs text-text-secondary ml-2">(Agência Popular)</span>
+            </div>
+            <div className="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 w-full"></div>
+            </div>
           </div>
-          <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Saldo da Agência (API)</p>
-          <div className="flex items-baseline gap-1">
+        ) : (
+          <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <span className="material-symbols-outlined text-4xl text-blue-400">pending_actions</span>
+            </div>
+            <p className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Pedidos Ativos</p>
             <h3 className="text-3xl font-black text-white">
-              {providerBalance !== null
-                ? `R$ ${providerBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                : '---'}
+              {activeOrdersCount}
             </h3>
-            <span className="text-xs text-text-secondary ml-2">(Agência Popular)</span>
+            <p className="text-xs text-text-secondary mt-2">Em processamento recente</p>
           </div>
-          <div className="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 w-full"></div>
-          </div>
-        </div>
+        )}
 
         {/* User Balance (Replaces Total Spent) */}
         <div className="bg-card-dark rounded-xl border border-border-dark p-6 relative overflow-hidden group">
@@ -210,10 +259,10 @@ const Dashboard: React.FC = () => {
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{order.quantity}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'completed'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : order.status === 'processing'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : order.status === 'processing'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400'
                         }`}>
                         {order.status === 'completed' ? 'Concluído' : order.status === 'processing' ? 'Processando' : order.status}
                       </span>
