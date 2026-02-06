@@ -18,42 +18,29 @@ const AddFunds: React.FC = () => {
                 return;
             }
 
-            const valueInCents = Math.round(Number(amount) * 100);
-
-            const response = await fetch('https://api.abacatepay.com/v1/billing/create', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_ABACATEPAY_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    frequency: 'ONE_TIME',
-                    methods: ['PIX'],
-                    products: [{
-                        externalId: 'add-funds',
-                        name: 'Adicionar Saldo',
-                        quantity: 1,
-                        price: valueInCents,
-                    }],
+            const { data, error } = await supabase.functions.invoke('create-abacatepay-checkout', {
+                body: {
+                    amount: amount,
                     returnUrl: `${window.location.origin}/dashboard`,
                     completionUrl: `${window.location.origin}/dashboard?payment=success`,
-                    metadata: {
-                        userId: user.id
-                    },
                     customer: {
                         name: user.user_metadata.name || user.email,
                         email: user.email,
-                        taxId: user.user_metadata.cpf || '00000000000' // Sending a dummy or real CPF if available. AbacatePay might validate. 
+                        taxId: user.user_metadata.cpf || '00000000000'
                     }
-                })
+                }
             });
 
-            const data = await response.json();
+            if (error) {
+                console.error('Erro na Edge Function:', error);
+                alert('Erro ao processar pagamento. Tente novamente.');
+                return;
+            }
 
-            if (data.url) {
+            if (data && data.url) {
                 window.location.href = data.url;
             } else {
-                console.error('Erro ao criar cobrança:', data);
+                console.error('Erro ao criar cobrança (sem URL):', data);
                 alert('Erro ao processar pagamento. Tente novamente.');
             }
         } catch (error) {
