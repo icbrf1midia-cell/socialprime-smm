@@ -33,7 +33,11 @@ const AddFunds: React.FC = () => {
 
             if (error) {
                 console.error('Erro na Edge Function:', error);
-                alert('Erro ao processar pagamento. Tente novamente.');
+                // Log detailed error from function body if available
+                if (data && data.error) {
+                    console.error('Detalhe do erro:', data.error);
+                }
+                alert('Erro ao processar pagamento. Verifique o console para mais detalhes.');
                 return;
             }
 
