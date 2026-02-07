@@ -35,19 +35,19 @@ serve(async (req) => {
     if (!customer) throw new Error('Missing field: customer')
     if (!customer.email) throw new Error('Missing field: customer.email')
 
-    // 2. Format Amount (Strict Integer Cents)
-    // Clean string to number
-    const sanitizedAmountStr = String(amount).replace(/[^0-9.,]/g, '').replace(',', '.')
-    const numericAmount = parseFloat(sanitizedAmountStr)
+    // 2. Format Amount (Strict Integer Cents) -> HARDCODED FOR TEST
+    // const sanitizedAmountStr = String(amount).replace(/[^0-9.,]/g, '').replace(',', '.')
+    // const numericAmount = parseFloat(sanitizedAmountStr)
 
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      throw new Error(`Invalid amount: ${amount}`)
-    }
+    // if (isNaN(numericAmount) || numericAmount <= 0) {
+    //   throw new Error(`Invalid amount: ${amount}`)
+    // }
 
     // Convert to cents
-    const valueInCents = Math.round(numericAmount * 100)
+    // const valueInCents = Math.round(numericAmount * 100)
+    const valueInCents = 1000 // R$ 10,00 FIXED TEST
 
-    console.log(`Amount Cents: ${valueInCents}`)
+    console.log(`Amount Cents (HARDCODED): ${valueInCents}`)
 
     // 3. Format TaxID
     let cleanTaxId = customer.taxId ? String(customer.taxId).replace(/\D/g, '') : ''

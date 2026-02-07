@@ -109,6 +109,7 @@ const AddFunds: React.FC = () => {
                                 onChange={(e) => setAmount(e.target.value)}
                                 className="w-full h-14 pl-12 pr-4 bg-background-dark border border-border-dark rounded-lg text-white text-2xl font-bold focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                                 placeholder="0,00"
+                                step="any"
                             />
                         </div>
 
