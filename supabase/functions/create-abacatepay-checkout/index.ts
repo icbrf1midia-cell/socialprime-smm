@@ -35,19 +35,19 @@ serve(async (req) => {
     if (!customer) throw new Error('Missing field: customer')
     if (!customer.email) throw new Error('Missing field: customer.email')
 
-    // 2. Format Amount (Strict Integer Cents) -> HARDCODED FOR TEST
-    // const sanitizedAmountStr = String(amount).replace(/[^0-9.,]/g, '').replace(',', '.')
-    // const numericAmount = parseFloat(sanitizedAmountStr)
+    // 2. Format Amount (Strict Integer Cents)
+    // Clean string to number
+    const sanitizedAmountStr = String(amount).replace(/[^0-9.,]/g, '').replace(',', '.')
+    const numericAmount = parseFloat(sanitizedAmountStr)
 
-    // if (isNaN(numericAmount) || numericAmount <= 0) {
-    //   throw new Error(`Invalid amount: ${amount}`)
-    // }
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error(`Invalid amount: ${amount}`)
+    }
 
     // Convert to cents
-    // const valueInCents = Math.round(numericAmount * 100)
-    const valueInCents = 1000 // R$ 10,00 FIXED TEST
+    const valueInCents = Math.round(numericAmount * 100)
 
-    console.log(`Amount Cents (HARDCODED): ${valueInCents}`)
+    console.log(`Amount Cents: ${valueInCents}`)
 
     // 3. Format TaxID
     let cleanTaxId = customer.taxId ? String(customer.taxId).replace(/\D/g, '') : ''
@@ -61,26 +61,18 @@ serve(async (req) => {
 
     // Construct Body
     const body = {
-      frequency: 'ONE_TIME',
-      methods: ['PIX'],
-      products: [{
-        externalId: 'add-funds',
-        name: 'Adicionar Saldo',
-        description: 'Recarga de saldo na plataforma',
-        quantity: 1,
-        price: valueInCents,
-      }],
-      returnUrl: returnUrl,
-      completionUrl: completionUrl,
+      amount: valueInCents,
       customer: {
         name: customer.name || customer.email,
         email: customer.email,
         taxId: cleanTaxId || undefined,
-        metadata: {
-          email: customer.email,
-          userId: customer.name
-        }
-      }
+      },
+      methods: ['PIX'],
+      metadata: {
+        userId: customer.metadata?.userId || customer.name // Handle metadata safely
+      },
+      returnUrl: returnUrl,
+      completionUrl: completionUrl
     }
 
     console.log('Sending Payload to AbacatePay:', JSON.stringify(body))

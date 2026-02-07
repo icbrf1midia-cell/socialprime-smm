@@ -18,9 +18,11 @@ const AddFunds: React.FC = () => {
                 return;
             }
 
+            const numericAmount = parseFloat(amount.replace(',', '.'));
+
             const { data, error } = await supabase.functions.invoke('create-abacatepay-checkout', {
                 body: {
-                    amount: amount,
+                    amount: numericAmount,
                     returnUrl: `${window.location.origin}/dashboard`,
                     completionUrl: `${window.location.origin}/dashboard?payment=success`,
                     customer: {
