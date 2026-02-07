@@ -33,6 +33,8 @@ const AddFunds: React.FC = () => {
                 }
             });
 
+            console.log('Resposta completa:', data);
+
             if (error) {
                 console.error('Erro na Edge Function:', error);
                 // Log detailed error from function body if available
