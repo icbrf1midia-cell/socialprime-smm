@@ -60,8 +60,6 @@ const AddFunds: React.FC = () => {
                 }
             });
 
-            console.log('Resposta completa:', data);
-
             if (error) {
                 console.error('Erro na Edge Function:', error);
                 // Log detailed error from function body if available
@@ -72,8 +70,11 @@ const AddFunds: React.FC = () => {
                 return;
             }
 
-            if (data && data.url) {
-                window.location.href = data.url;
+            // A URL agora vem dentro de upstreamData.data.url (estrutura de debug)
+            const paymentUrl = data?.upstreamData?.data?.url || data?.url;
+
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
             } else {
                 console.error('Erro ao criar cobrança (sem URL):', data);
                 alert('Erro ao processar pagamento. Tente novamente.');
