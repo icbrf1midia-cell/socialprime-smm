@@ -20,7 +20,7 @@ serve(async (req) => {
     const rawBody = await req.json()
     console.log('Body recebido:', JSON.stringify(rawBody))
 
-    const { amount, customer, returnUrl, completionUrl } = rawBody
+    const { amount, customer, returnUrl, completionUrl, userId } = rawBody
 
     // 2. Simplificação Radical: Payload Construction
     // Envie exatamente a estrutura solicitada
@@ -39,6 +39,9 @@ serve(async (req) => {
       ],
       returnUrl: returnUrl || "https://socialprime-smm.vercel.app/",
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/",
+      metadata: {
+        userId: userId || customer?.email // Fallback to email if userId missing
+      },
       customer: {
         name: customer?.name || "Cliente SocialPrime",
         email: customer?.email,
