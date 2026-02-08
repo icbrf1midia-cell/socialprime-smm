@@ -23,17 +23,26 @@ serve(async (req) => {
     const { amount, customer, returnUrl, completionUrl } = rawBody
 
     // 2. Simplificação Radical: Payload Construction
-    // Envie apenas o email, o amount e o method: ['PIX']
+    // Envie exatamente a estrutura solicitada
+    const valueInCents = Math.round(Number(amount) * 100)
+
     const payload = {
-      amount: Math.round(Number(amount) * 100), // Integer cents
+      frequency: "ONE_TIME",
+      methods: ["PIX"],
+      products: [
+        {
+          externalId: "recharge",
+          name: "Recarga de Saldo",
+          quantity: 1,
+          price: valueInCents
+        }
+      ],
+      returnUrl: returnUrl || "https://socialprime-smm.vercel.app/dashboard",
+      completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard",
       customer: {
-        email: customer?.email,
-        name: customer?.name || "Cliente Debug", // AbacatePay might require a name
-      },
-      methods: ['PIX'],
-      frequency: 'ONE_TIME', // Required by AbacatePay
-      returnUrl: returnUrl || "https://socialprime-smm.vercel.app/dashboard", // Fallback to avoid 'missing returnUrl' if strictly required, but keeping it simple
-      completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard"
+        name: customer?.name || "Cliente Debug",
+        email: customer?.email
+      }
     }
 
     console.log('Payload para AbacatePay:', JSON.stringify(payload))
