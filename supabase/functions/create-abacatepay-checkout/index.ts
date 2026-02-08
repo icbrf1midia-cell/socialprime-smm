@@ -31,6 +31,7 @@ serve(async (req) => {
         name: customer?.name || "Cliente Debug", // AbacatePay might require a name
       },
       methods: ['PIX'],
+      frequency: 'ONE_TIME', // Required by AbacatePay
       returnUrl: returnUrl || "https://socialprime-smm.vercel.app/dashboard", // Fallback to avoid 'missing returnUrl' if strictly required, but keeping it simple
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard"
     }
