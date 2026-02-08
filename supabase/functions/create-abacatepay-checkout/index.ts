@@ -2,55 +2,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://socialprime-smm.vercel.app',
+  'Access-Control-Allow-Origin': 'https://socialprime-smm.vercel.app', // Explicit Origin
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, region',
 }
 
 serve(async (req) => {
+  // GLOBAL TRY/CATCH WRAPPER
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders })
     }
 
-    // Log raw body for debugging
+    // Parse Body
+    let reqBody
     try {
-      const clone = req.clone()
-      console.log("Recebi isso no body:", await clone.json())
+      reqBody = await req.json()
     } catch (e) {
-      console.log("Erro ao ler body para log:", e)
+      throw new Error(`Falha ao ler JSON do corpo: ${e instanceof Error ? e.message : String(e)}`)
     }
+
+    // LOG PAYLOAD (Requested by user)
+    console.log('Payload recebido:', JSON.stringify(reqBody))
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing Authorization header')
     }
 
-    let reqBody;
-    try {
-      reqBody = await req.json()
-    } catch (e) {
-      console.error("Erro ao fazer parse do JSON:", e)
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON body', details: String(e) }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        },
-      )
-    }
-
     const { amount, returnUrl, completionUrl, customer } = reqBody
 
     // Validate Required Fields
-    if (!amount) throw new Error('Missing field: amount')
-    if (!customer) throw new Error('Missing field: customer')
-    if (!customer.email) throw new Error('Missing field: customer.email')
+    if (!amount) throw new Error('Campo faltando: amount')
+    if (!customer) throw new Error('Campo faltando: customer')
+    if (!customer.email) throw new Error('Campo faltando: customer.email')
 
     // Format Amount (Strict Integer Cents)
     const numericAmount = Number(amount)
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      throw new Error(`Invalid amount: ${amount}`)
+      throw new Error(`Valor inválido: ${amount}`)
     }
     const valueInCents = Math.round(numericAmount * 100)
     console.log(`Amount Cents: ${valueInCents}`)
@@ -61,8 +51,8 @@ serve(async (req) => {
     // Use ABACATEPAY_API_KEY from secrets
     const abacatePayKey = Deno.env.get('ABACATEPAY_API_KEY')
     if (!abacatePayKey) {
-      console.error('ABACATEPAY_API_KEY is not set')
-      throw new Error('Server misconfiguration: Missing API Key')
+      // console.error('ABACATEPAY_API_KEY is not set') // Don't log secrets structure to client, just server log if needed
+      throw new Error('Configuração de servidor: ABACATEPAY_API_KEY ausente')
     }
 
     // Construct Body for AbacatePay V1
@@ -81,7 +71,7 @@ serve(async (req) => {
       completionUrl: completionUrl
     }
 
-    console.log('Sending Payload to AbacatePay:', JSON.stringify(body))
+    console.log('Enviando Payload para AbacatePay:', JSON.stringify(body))
 
     const response = await fetch('https://api.abacatepay.com/v1/billing/create', {
       method: 'POST',
@@ -93,17 +83,12 @@ serve(async (req) => {
     })
 
     const responseText = await response.text()
-    console.log(`AbacatePay Response Status: ${response.status}`)
-    console.log('AbacatePay Raw Response Body:', responseText)
+    console.log(`AbacatePay Status: ${response.status}`)
+    console.log('AbacatePay Resposta:', responseText)
 
     if (!response.ok) {
-      return new Response(
-        JSON.stringify({ detalhe: responseText }), // Returning exact logic requested
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        },
-      )
+      // Return exact upstream error details
+      throw new Error(`Erro AbacatePay: ${responseText}`)
     }
 
     let data
@@ -120,10 +105,15 @@ serve(async (req) => {
         status: 200,
       },
     )
+
   } catch (error) {
-    console.error('Edge Function Fatal Error:', error)
+    console.error('Edge Function CATCH:', error)
+    // EXPLICIT ERROR RESPONSE
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error', details: String(error) }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: String(error)
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
