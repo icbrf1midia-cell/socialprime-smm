@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -9,7 +9,6 @@ const AddFunds: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    // Máscaras e Validação Simples
     const maskCPF = (value: string) => {
         return value
             .replace(/\D/g, '')
@@ -26,6 +25,28 @@ const AddFunds: React.FC = () => {
             .replace(/(\d{5})(\d)/, '$1-$2')
             .replace(/(-\d{4})\d+?$/, '$1');
     };
+
+    // Load saved data from profile
+    useEffect(() => {
+        const loadProfile = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('cpf, cellphone')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    if (profile.cpf) setCpf(profile.cpf); // Already masked if saved masked, but better save clean? Let's assume saved as is or clean. 
+                    // Actually let's mask it for display if it's clean
+                    if (profile.cpf) setCpf(maskCPF(profile.cpf));
+                    if (profile.cellphone) setPhone(maskPhone(profile.cellphone));
+                }
+            }
+        };
+        loadProfile();
+    }, []);
 
     const isValid = () => {
         const cleanCpf = cpf.replace(/\D/g, '');
@@ -45,6 +66,14 @@ const AddFunds: React.FC = () => {
             }
 
             const numericAmount = parseFloat(amount.replace(',', '.'));
+            const cleanCpf = cpf.replace(/\D/g, '');
+            const cleanPhone = phone.replace(/\D/g, '');
+
+            // Save to profile
+            await supabase
+                .from('profiles')
+                .update({ cpf: cleanCpf, cellphone: cleanPhone })
+                .eq('id', user.id);
 
             const { data, error } = await supabase.functions.invoke('create-abacatepay-checkout', {
                 body: {
@@ -54,8 +83,8 @@ const AddFunds: React.FC = () => {
                     customer: {
                         name: user.user_metadata.name || user.email,
                         email: user.email,
-                        taxId: cpf.replace(/\D/g, ''),
-                        cellphone: phone.replace(/\D/g, '')
+                        taxId: cleanCpf,
+                        cellphone: cleanPhone
                     }
                 }
             });
