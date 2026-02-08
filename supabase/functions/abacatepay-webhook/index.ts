@@ -27,10 +27,14 @@ serve(async (req) => {
             const amountInCents = data?.amount || body?.data?.amount || 0
 
             // Try to find userId in multiple possible locations
-            // AbacatePay might send it in data.metadata or just metadata depending on event version
-            const userId = data?.metadata?.userId || body?.metadata?.userId
+            const userId =
+                data?.metadata?.userId ||
+                body?.metadata?.userId ||
+                data?.payment?.metadata?.userId ||
+                data?.billing?.metadata?.userId
 
-            console.log(`[DEBUG] Extracted UserId: ${userId} from payload`)
+            console.log(`[DEBUG] Payload metadata:`, JSON.stringify(data?.metadata))
+            console.log(`[DEBUG] Extracted UserId: ${userId}`)
 
             if (!userId) {
                 console.error('UserId não encontrado no metadata')
