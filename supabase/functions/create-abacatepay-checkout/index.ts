@@ -22,12 +22,15 @@ serve(async (req) => {
 
     const { amount, customer, returnUrl, completionUrl, userId } = rawBody
 
+    // STRICT CHECK: UserId is mandatory
+    if (!userId) {
+      throw new Error("UserId is mandatory for this operation");
+    }
+
     console.log(`[DEBUG] UserId received: ${userId}`)
 
-    // 2. Simplificação Radical: Payload Construction
-
     // Ensure we have a valid identifier
-    const userIdentifier = userId || customer?.email || 'unknown_user';
+    const userIdentifier = userId;
     console.log(`[DEBUG] Using userIdentifier: ${userIdentifier}`);
 
     const valueInCents = Math.round(Number(amount) * 100)

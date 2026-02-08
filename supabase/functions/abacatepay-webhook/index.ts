@@ -32,14 +32,16 @@ serve(async (req) => {
 
             if (data?.products && data.products.length > 0) {
                 const externalId = data.products[0].externalId;
-                if (externalId && externalId.startsWith('recharge_')) {
+                console.log(`[DEBUG] Product ExternalId: ${externalId}`);
+                if (externalId && externalId.includes('recharge_')) {
                     userId = externalId.split('recharge_')[1];
                     console.log(`[DEBUG] Recovered UserId from Product ID: ${userId}`);
                 }
             } else if (data?.billing?.products && data.billing.products.length > 0) {
                 // Check deep billing structure just in case
                 const externalId = data.billing.products[0].externalId;
-                if (externalId && externalId.startsWith('recharge_')) {
+                console.log(`[DEBUG] Billing Product ExternalId: ${externalId}`);
+                if (externalId && externalId.includes('recharge_')) {
                     userId = externalId.split('recharge_')[1];
                     console.log(`[DEBUG] Recovered UserId from Billing Product ID: ${userId}`);
                 }
