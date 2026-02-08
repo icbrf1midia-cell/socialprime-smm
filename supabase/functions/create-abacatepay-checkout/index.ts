@@ -37,8 +37,8 @@ serve(async (req) => {
           price: valueInCents
         }
       ],
-      returnUrl: returnUrl || "https://socialprime-smm.vercel.app/dashboard",
-      completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard",
+      returnUrl: returnUrl || "https://socialprime-smm.vercel.app/",
+      completionUrl: completionUrl || "https://socialprime-smm.vercel.app/",
       customer: {
         name: customer?.name || "Cliente SocialPrime",
         email: customer?.email,

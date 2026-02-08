@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
@@ -10,8 +10,24 @@ const Dashboard: React.FC = () => {
   const [ordersCount, setOrdersCount] = useState<number>(0);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
-
   const [activeOrdersCount, setActiveOrdersCount] = useState<number>(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check for payment=success in URL
+    const params = new URLSearchParams(location.search);
+    if (params.get('payment') === 'success') {
+      setShowSuccess(true);
+      // Clean URL without reloading
+      navigate('/', { replace: true });
+
+      // Auto dismiss after 10 seconds
+      setTimeout(() => setShowSuccess(false), 10000);
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,6 +111,26 @@ const Dashboard: React.FC = () => {
         </h2>
         <p className="text-slate-500 dark:text-text-secondary">Acompanhe seus pedidos e crescimento nas redes sociais.</p>
       </div>
+
+      {showSuccess && (
+        <div className="mb-8 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-white">check</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-lg">Pagamento Recebido com Sucesso!</h3>
+              <p className="text-emerald-200 text-sm">Seu saldo já foi adicionado à sua conta. Aproveite!</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSuccess(false)}
+            className="p-2 hover:bg-emerald-500/20 rounded-full transition-colors text-emerald-400 hover:text-white"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-4 mb-8">
         <button className="flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-bold hover:bg-emerald-500/20 transition-colors">

@@ -49,8 +49,8 @@ const AddFunds: React.FC = () => {
             const { data, error } = await supabase.functions.invoke('create-abacatepay-checkout', {
                 body: {
                     amount: numericAmount,
-                    returnUrl: `${window.location.origin}/dashboard`,
-                    completionUrl: `${window.location.origin}/dashboard?payment=success`,
+                    returnUrl: window.location.origin, // Root URL to avoid 404 on Vercel
+                    completionUrl: `${window.location.origin}/?payment=success`, // Query param on root
                     customer: {
                         name: user.user_metadata.name || user.email,
                         email: user.email,
