@@ -30,7 +30,14 @@ serve(async (req) => {
     try {
       reqBody = await req.json()
     } catch (e) {
-      throw new Error('Invalid JSON body')
+      console.error("Erro ao fazer parse do JSON:", e)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body', details: String(e) }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        },
+      )
     }
 
     // console.log('Incoming Request Body:', JSON.stringify(reqBody)) // Redundant/Removed in favor of top logger
