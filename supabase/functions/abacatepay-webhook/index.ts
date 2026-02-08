@@ -27,11 +27,13 @@ serve(async (req) => {
             const amountInCents = data?.amount || body?.data?.amount || 0
 
             // Try to find userId in multiple possible locations
+            // Try to find userId in multiple possible locations
+            // User confirmed structure: body.data.billing.metadata.userId
             let userId =
+                data?.billing?.metadata?.userId ||
                 data?.metadata?.userId ||
                 body?.metadata?.userId ||
-                data?.payment?.metadata?.userId ||
-                data?.billing?.metadata?.userId
+                data?.payment?.metadata?.userId
 
             // STRATEGY B: Product External ID (Backup)
             if (!userId && data?.products && data.products.length > 0) {
@@ -42,7 +44,8 @@ serve(async (req) => {
                 }
             }
 
-            console.log(`[DEBUG] Payload metadata:`, JSON.stringify(data?.metadata))
+            console.log(`[DEBUG] Full Data Object:`, JSON.stringify(data))
+            console.log(`[DEBUG] Data.Billing:`, JSON.stringify(data?.billing))
             console.log(`[DEBUG] Extracted UserId: ${userId}`)
 
             if (!userId) {
