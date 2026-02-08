@@ -42,8 +42,8 @@ serve(async (req) => {
       customer: {
         name: customer?.name || "Cliente Debug",
         email: customer?.email,
-        cellphone: "00000000000",
-        taxId: "00000000000"
+        cellphone: "11987654321", // Telefone valido para teste
+        taxId: "70830728023" // CPF valido gerado para teste
       }
     }
 
