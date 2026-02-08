@@ -41,7 +41,9 @@ serve(async (req) => {
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard",
       customer: {
         name: customer?.name || "Cliente Debug",
-        email: customer?.email
+        email: customer?.email,
+        cellphone: "00000000000",
+        taxId: "00000000000"
       }
     }
 
