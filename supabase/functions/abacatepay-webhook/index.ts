@@ -24,7 +24,8 @@ serve(async (req) => {
         const { event, data } = body
 
         if (event === 'billing.paid' || data?.status === 'PAID') {
-            const amountInCents = data?.amount || body?.data?.amount || 0
+            const amountInCents = data?.billing?.amount || data?.amount || body?.data?.amount || 0
+            console.log('Valor real detectado (centavos):', amountInCents)
 
             // STRATEGY: Extract UserId from Product External ID (Primary & Definitive)
             // User confirmed location: data.billing.products[0].externalId
