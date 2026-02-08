@@ -4,8 +4,34 @@ import { supabase } from '../lib/supabase';
 
 const AddFunds: React.FC = () => {
     const [amount, setAmount] = useState<string>('50');
+    const [cpf, setCpf] = useState<string>('');
+    const [phone, setPhone] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Máscaras e Validação Simples
+    const maskCPF = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+            .replace(/(-\d{2})\d+?$/, '$1');
+    };
+
+    const maskPhone = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .replace(/(-\d{4})\d+?$/, '$1');
+    };
+
+    const isValid = () => {
+        const cleanCpf = cpf.replace(/\D/g, '');
+        const cleanPhone = phone.replace(/\D/g, '');
+        return cleanCpf.length === 11 && cleanPhone.length >= 10;
+    };
 
     const handlePay = async () => {
         try {
@@ -28,7 +54,8 @@ const AddFunds: React.FC = () => {
                     customer: {
                         name: user.user_metadata.name || user.email,
                         email: user.email,
-                        taxId: user.user_metadata.cpf || '00000000000'
+                        taxId: cpf.replace(/\D/g, ''),
+                        cellphone: phone.replace(/\D/g, '')
                     }
                 }
             });
@@ -99,9 +126,44 @@ const AddFunds: React.FC = () => {
                     </label>
                 </div>
 
+                {/* Personal Data for PIX */}
+                <div className="flex flex-col gap-4">
+                    <h3 className="text-lg font-bold text-white">2. Dados para Nota Fiscal</h3>
+
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-yellow-500 text-sm mt-0.5">info</span>
+                        <p className="text-sm text-yellow-200/80">
+                            Para sua segurança e emissão do Pix, CPF e Telefone são obrigatórios.
+                        </p>
+                    </div>
+
+                    <div className="bg-card-dark rounded-xl border border-border-dark p-6 shadow-sm flex flex-col gap-4">
+                        <div>
+                            <label className="text-sm font-medium text-text-secondary mb-2 block">CPF</label>
+                            <input
+                                type="text"
+                                value={cpf}
+                                onChange={(e) => setCpf(maskCPF(e.target.value))}
+                                className="w-full h-12 pl-4 pr-4 bg-background-dark border border-border-dark rounded-lg text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600"
+                                placeholder="000.000.000-00"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-text-secondary mb-2 block">Celular / WhatsApp</label>
+                            <input
+                                type="text"
+                                value={phone}
+                                onChange={(e) => setPhone(maskPhone(e.target.value))}
+                                className="w-full h-12 pl-4 pr-4 bg-background-dark border border-border-dark rounded-lg text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600"
+                                placeholder="(00) 00000-0000"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Amount Selection */}
                 <div className="flex flex-col gap-4">
-                    <h3 className="text-lg font-bold text-white">2. Valor da Recarga</h3>
+                    <h3 className="text-lg font-bold text-white">3. Valor da Recarga</h3>
 
                     <div className="bg-card-dark rounded-xl border border-border-dark p-6 shadow-sm">
                         <label className="text-sm font-medium text-text-secondary mb-2 block">Digite o valor (R$)</label>
@@ -140,7 +202,7 @@ const AddFunds: React.FC = () => {
                             </div>
                             <button
                                 onClick={handlePay}
-                                disabled={loading}
+                                disabled={loading || !isValid()}
                                 className="w-full mt-2 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
                             >
                                 {loading ? (

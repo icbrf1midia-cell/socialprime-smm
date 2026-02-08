@@ -40,10 +40,10 @@ serve(async (req) => {
       returnUrl: returnUrl || "https://socialprime-smm.vercel.app/dashboard",
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/dashboard",
       customer: {
-        name: customer?.name || "Cliente Debug",
+        name: customer?.name || "Cliente SocialPrime",
         email: customer?.email,
-        cellphone: "11987654321", // Telefone valido para teste
-        taxId: "70830728023" // CPF valido gerado para teste
+        cellphone: customer?.cellphone,
+        taxId: customer?.taxId
       }
     }
 
