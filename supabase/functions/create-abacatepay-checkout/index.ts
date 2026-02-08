@@ -22,6 +22,8 @@ serve(async (req) => {
 
     const { amount, customer, returnUrl, completionUrl, userId } = rawBody
 
+    console.log(`[DEBUG] UserId received: ${userId}`)
+
     // 2. Simplificação Radical: Payload Construction
     // Envie exatamente a estrutura solicitada
     const valueInCents = Math.round(Number(amount) * 100)
@@ -40,7 +42,7 @@ serve(async (req) => {
       returnUrl: returnUrl || "https://socialprime-smm.vercel.app/",
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/",
       metadata: {
-        userId: userId || customer?.email // Fallback to email if userId missing
+        userId: userId || customer?.email, // Metadata at root level
       },
       customer: {
         name: customer?.name || "Cliente SocialPrime",
