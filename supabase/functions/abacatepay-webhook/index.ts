@@ -26,22 +26,32 @@ serve(async (req) => {
         if (event === 'billing.paid' || data?.status === 'PAID') {
             const amountInCents = data?.amount || body?.data?.amount || 0
 
-            // Try to find userId in multiple possible locations
-            // Try to find userId in multiple possible locations
-            // User confirmed structure: body.data.billing.metadata.userId
-            let userId =
-                data?.billing?.metadata?.userId ||
-                data?.metadata?.userId ||
-                body?.metadata?.userId ||
-                data?.payment?.metadata?.userId
+            // STRATEGY: Extract UserId from Product External ID (Primary)
+            // Format: recharge_<userId>
+            let userId;
 
-            // STRATEGY B: Product External ID (Backup)
-            if (!userId && data?.products && data.products.length > 0) {
+            if (data?.products && data.products.length > 0) {
                 const externalId = data.products[0].externalId;
                 if (externalId && externalId.startsWith('recharge_')) {
                     userId = externalId.split('recharge_')[1];
                     console.log(`[DEBUG] Recovered UserId from Product ID: ${userId}`);
                 }
+            } else if (data?.billing?.products && data.billing.products.length > 0) {
+                // Check deep billing structure just in case
+                const externalId = data.billing.products[0].externalId;
+                if (externalId && externalId.startsWith('recharge_')) {
+                    userId = externalId.split('recharge_')[1];
+                    console.log(`[DEBUG] Recovered UserId from Billing Product ID: ${userId}`);
+                }
+            }
+
+            // Fallback to Metadata if Product ID fails
+            if (!userId) {
+                userId =
+                    data?.billing?.metadata?.userId ||
+                    data?.metadata?.userId ||
+                    body?.metadata?.userId ||
+                    data?.payment?.metadata?.userId
             }
 
             console.log(`[DEBUG] Full Data Object:`, JSON.stringify(data))
