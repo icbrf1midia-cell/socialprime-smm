@@ -25,7 +25,11 @@ serve(async (req) => {
     console.log(`[DEBUG] UserId received: ${userId}`)
 
     // 2. Simplificação Radical: Payload Construction
-    // Envie exatamente a estrutura solicitada
+
+    // Ensure we have a valid identifier
+    const userIdentifier = userId || customer?.email || 'unknown_user';
+    console.log(`[DEBUG] Using userIdentifier: ${userIdentifier}`);
+
     const valueInCents = Math.round(Number(amount) * 100)
 
     const payload = {
@@ -33,7 +37,7 @@ serve(async (req) => {
       methods: ["PIX"],
       products: [
         {
-          externalId: "recharge",
+          externalId: `recharge_${userIdentifier}`, // STRATEGY B: Embed ID in product
           name: "Recarga de Saldo",
           quantity: 1,
           price: valueInCents
@@ -42,7 +46,7 @@ serve(async (req) => {
       returnUrl: returnUrl || "https://socialprime-smm.vercel.app/",
       completionUrl: completionUrl || "https://socialprime-smm.vercel.app/",
       metadata: {
-        userId: userId || customer?.email, // Metadata at root level
+        userId: userIdentifier // STRATEGY A: Keep trying metadata
       },
       customer: {
         name: customer?.name || "Cliente SocialPrime",

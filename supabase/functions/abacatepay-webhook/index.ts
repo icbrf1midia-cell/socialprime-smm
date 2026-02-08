@@ -27,11 +27,20 @@ serve(async (req) => {
             const amountInCents = data?.amount || body?.data?.amount || 0
 
             // Try to find userId in multiple possible locations
-            const userId =
+            let userId =
                 data?.metadata?.userId ||
                 body?.metadata?.userId ||
                 data?.payment?.metadata?.userId ||
                 data?.billing?.metadata?.userId
+
+            // STRATEGY B: Product External ID (Backup)
+            if (!userId && data?.products && data.products.length > 0) {
+                const externalId = data.products[0].externalId;
+                if (externalId && externalId.startsWith('recharge_')) {
+                    userId = externalId.split('recharge_')[1];
+                    console.log(`[DEBUG] Recovered UserId from Product ID: ${userId}`);
+                }
+            }
 
             console.log(`[DEBUG] Payload metadata:`, JSON.stringify(data?.metadata))
             console.log(`[DEBUG] Extracted UserId: ${userId}`)
