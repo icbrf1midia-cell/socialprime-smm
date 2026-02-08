@@ -58,7 +58,7 @@ serve(async (req) => {
 
             console.log(`[DEBUG] Full Data Object:`, JSON.stringify(data))
             console.log(`[DEBUG] Data.Billing:`, JSON.stringify(data?.billing))
-            console.log(`[DEBUG] Extracted UserId: ${userId}`)
+            console.log('Tentando atualizar o usuário ID:', userId)
 
             if (!userId) {
                 console.error('UserId não encontrado no metadata')
