@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://socialprime-smm.vercel.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, region',
 }
 
@@ -13,6 +13,14 @@ serve(async (req) => {
   }
 
   try {
+    // Log raw body for debugging
+    try {
+      const clone = req.clone()
+      console.log("Recebi isso no body:", await clone.json())
+    } catch (e) {
+      console.log("Erro ao ler body para log:", e)
+    }
+
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing Authorization header')
@@ -25,7 +33,7 @@ serve(async (req) => {
       throw new Error('Invalid JSON body')
     }
 
-    console.log('Incoming Request Body:', JSON.stringify(reqBody))
+    // console.log('Incoming Request Body:', JSON.stringify(reqBody)) // Redundant/Removed in favor of top logger
 
     const { amount, returnUrl, completionUrl, customer } = reqBody
 
@@ -83,25 +91,21 @@ serve(async (req) => {
     console.log(`AbacatePay Response Status: ${response.status}`)
     console.log('AbacatePay Raw Response Body:', responseText)
 
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch (e) {
-      data = { raw: responseText }
-    }
-
     if (!response.ok) {
       return new Response(
-        JSON.stringify({
-          error: 'AbacatePay API Error',
-          details: data,
-          raw_message: responseText
-        }),
+        JSON.stringify({ detalhe: responseText }), // Returning exact logic requested
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         },
       )
+    }
+
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      data = { raw: responseText }
     }
 
     return new Response(
