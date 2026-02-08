@@ -7,12 +7,12 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders })
+    }
+
     // Log raw body for debugging
     try {
       const clone = req.clone()
@@ -39,8 +39,6 @@ serve(async (req) => {
         },
       )
     }
-
-    // console.log('Incoming Request Body:', JSON.stringify(reqBody)) // Redundant/Removed in favor of top logger
 
     const { amount, returnUrl, completionUrl, customer } = reqBody
 
@@ -125,7 +123,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Edge Function Fatal Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Unknown error', details: String(error) }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
