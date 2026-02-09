@@ -54,7 +54,8 @@ const AddFunds: React.FC = () => {
     const isValid = () => {
         const cleanCpf = cpf.replace(/\D/g, '');
         const cleanPhone = phone.replace(/\D/g, '');
-        return cleanCpf.length === 11 && cleanPhone.length >= 10;
+        const numericAmount = parseFloat(amount.replace(',', '.'));
+        return cleanCpf.length === 11 && cleanPhone.length >= 10 && !isNaN(numericAmount) && numericAmount >= 1;
     };
 
     const handlePay = async () => {
@@ -69,6 +70,13 @@ const AddFunds: React.FC = () => {
             }
 
             const numericAmount = parseFloat(amount.replace(',', '.'));
+
+            if (numericAmount < 1) {
+                alert('O valor mínimo para depósito é R$ 1,00');
+                setLoading(false);
+                return;
+            }
+
             const cleanCpf = cpf.replace(/\D/g, '');
             const cleanPhone = phone.replace(/\D/g, '');
 
@@ -260,10 +268,14 @@ const AddFunds: React.FC = () => {
                                     type="number"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full h-14 pl-12 pr-4 bg-background-dark border border-border-dark rounded-lg text-white text-2xl font-bold focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                    className={`w-full h-14 pl-12 pr-4 bg-background-dark border border-border-dark rounded-lg text-white text-2xl font-bold focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${parseFloat(amount) < 1 ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                                     placeholder="0,00"
                                     step="any"
+                                    min="1"
                                 />
+                                {parseFloat(amount) < 1 && (
+                                    <p className="text-red-400 text-xs mt-1 absolute -bottom-5 left-0">Valor mínimo de R$ 1,00</p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
