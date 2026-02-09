@@ -78,7 +78,7 @@ const AddFunds: React.FC = () => {
                 .update({ cpf: cleanCpf, cellphone: cleanPhone })
                 .eq('id', user.id);
 
-            const { data, error } = await supabase.functions.invoke('create-abacatepay-checkout', {
+            const { data, error } = await supabase.functions.invoke('create-mercadopago-checkout', {
                 body: {
                     userId: user.id, // Pass userId for metadata
                     amount: numericAmount,
