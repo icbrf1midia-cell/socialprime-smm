@@ -7,6 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+    console.log(`[Webhook Debug] Method: ${req.method} URL: ${req.url}`);
+
     // Handle CORS
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
