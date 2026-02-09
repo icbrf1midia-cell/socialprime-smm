@@ -74,11 +74,17 @@ serve(async (req) => {
                     return new Response(JSON.stringify({ error: 'UserId missing' }), { status: 200, headers: corsHeaders });
                 }
 
-                // Update Supabase
+                // Update Supabase with Admin Rights (Bypass RLS)
                 const supabaseAdmin = createClient(
                     Deno.env.get('SUPABASE_URL') ?? '',
-                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-                )
+                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+                    {
+                        auth: {
+                            autoRefreshToken: false,
+                            persistSession: false
+                        }
+                    }
+                );
 
                 // 1. Get current balance
                 const { data: profile, error: fetchError } = await supabaseAdmin
