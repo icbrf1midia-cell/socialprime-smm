@@ -55,7 +55,7 @@ serve(async (req) => {
                 }
             },
             external_reference: userId, // CRITICAL: This links the payment to the Supabase User
-            notification_url: "https://rlnxcalcgmnsczvlcmcg.supabase.co/functions/v1/mercadopago-webhook" // UPDATED URL
+            notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook` // Dynamic URL
         }
 
         console.log('Payload para Mercado Pago:', JSON.stringify(payload))
