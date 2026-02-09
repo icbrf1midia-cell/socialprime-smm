@@ -77,7 +77,7 @@ serve(async (req) => {
                 // Update Supabase with Admin Rights (Bypass RLS)
                 const supabaseAdmin = createClient(
                     Deno.env.get('SUPABASE_URL') ?? '',
-                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+                    Deno.env.get('SOCIAL_ADMIN_KEY') ?? '',
                     {
                         auth: {
                             autoRefreshToken: false,
