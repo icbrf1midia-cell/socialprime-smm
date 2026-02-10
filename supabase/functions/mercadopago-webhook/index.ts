@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
@@ -6,10 +5,9 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-    // 1. Force Change & Log check
-    console.log('Versão 2.0 - Carregando Chave Mestra...');
-    console.log(`[Webhook Debug] Method: ${req.method} URL: ${req.url}`);
+Deno.serve(async (req) => {
+    // LOG DE VIDA - VERSÃO 3.0 (Nativo)
+    console.log('Versão 3.0 - Boot Nativo Iniciado...');
 
     // Handle CORS
     if (req.method === 'OPTIONS') {
@@ -17,130 +15,110 @@ serve(async (req) => {
     }
 
     try {
+        const url = new URL(req.url);
+        console.log(`[Webhook] Recebido: ${req.method} em ${url.pathname}`);
+
         const body = await req.json().catch(() => ({}));
-        console.log('Webhook Mercado Pago recebido:', JSON.stringify(body));
+
+        // Log seguro do corpo para debug
+        console.log('Payload:', JSON.stringify(body));
 
         const action = body?.action;
         const type = body?.type;
         const dataId = body?.data?.id;
         const id = body?.id;
 
-        // Check if it's a payment update
-        // MP sends different structures sometimes, but 'action: payment.updated' is standard for v1.
+        // Filtro de evento
         if (action === 'payment.updated' || type === 'payment') {
             const paymentId = dataId || id;
 
             if (!paymentId) {
-                console.log('ID do pagamento não encontrado no webhook.');
+                console.log('Ignorado: ID de pagamento ausente.');
                 return new Response(JSON.stringify({ ignored: true }), { status: 200, headers: corsHeaders });
             }
 
-            console.log(`Verificando pagamento ID: ${paymentId}`);
+            console.log(`Processando Pagamento ID: ${paymentId}`);
 
-            // Fetch current status from Mercado Pago API
+            // 1. Consultar Mercado Pago
             const accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
-            if (!accessToken) {
-                throw new Error("MERCADO_PAGO_ACCESS_TOKEN not set");
-            }
+            if (!accessToken) throw new Error("MERCADO_PAGO_ACCESS_TOKEN ausente");
 
             const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
+                headers: { 'Authorization': `Bearer ${accessToken}` }
             });
 
             if (!mpResponse.ok) {
-                const errorText = await mpResponse.text();
-                console.error(`Erro ao consultar Mercado Pago: ${errorText}`);
-                return new Response(JSON.stringify({ error: "Failed to fetch payment", details: errorText }), { status: 200, headers: corsHeaders });
+                const errTxt = await mpResponse.text();
+                console.error(`Erro MP: ${errTxt}`);
+                return new Response(JSON.stringify({ error: "MP Error" }), { status: 200, headers: corsHeaders });
             }
 
             const paymentData = await mpResponse.json();
-            console.log(`Status do Pagamento ${paymentId}: ${paymentData.status}`);
+            console.log(`Status MP: ${paymentData.status}`);
 
             if (paymentData.status === 'approved') {
                 const userId = paymentData.external_reference;
-                const amountReceived = paymentData.transaction_amount;
-
-                console.log(`Pagamento Aprovado! User: ${userId}, Valor: ${amountReceived}`);
+                const amount = Number(paymentData.transaction_amount);
 
                 if (!userId) {
-                    console.error('UserId (external_reference) não encontrado no pagamento.');
+                    console.error('ERRO: external_reference (UserID) vazio no pagamento.');
                     return new Response(JSON.stringify({ error: 'UserId missing' }), { status: 200, headers: corsHeaders });
                 }
 
-                // 2. Safe Client Initialization
-                let supabaseAdmin;
-                try {
-                    const sbUrl = Deno.env.get('SUPABASE_URL');
-                    const sbKey = Deno.env.get('SOCIAL_ADMIN_KEY');
+                // 2. Inicializar Supabase Admin (Blindado)
+                const sbUrl = Deno.env.get('SUPABASE_URL');
+                const sbKey = Deno.env.get('SOCIAL_ADMIN_KEY'); // Sua chave nova
 
-                    if (!sbUrl || !sbKey) {
-                        console.error('CRITICAL: Variáveis de ambiente faltando (URL ou SOCIAL_ADMIN_KEY).');
-                        throw new Error("Missing Supabase Admin Credentials");
-                    }
-
-                    supabaseAdmin = createClient(sbUrl, sbKey, {
-                        auth: {
-                            autoRefreshToken: false,
-                            persistSession: false
-                        }
-                    });
-                } catch (clientErr) {
-                    console.error('CRITICAL: Falha ao inicializar Supabase Admin:', clientErr);
-                    return new Response(JSON.stringify({ error: "Admin Client Init Failed", details: String(clientErr) }), { status: 200, headers: corsHeaders });
+                if (!sbUrl || !sbKey) {
+                    console.error('CRITICAL: SOCIAL_ADMIN_KEY não encontrada!');
+                    throw new Error("Credenciais Admin Faltando");
                 }
 
-                // 3. Update Supabase
-                // Get current balance
+                const supabaseAdmin = createClient(sbUrl, sbKey, {
+                    auth: { autoRefreshToken: false, persistSession: false }
+                });
+
+                // 3. Atualizar Saldo
+                // Primeiro busca o saldo atual para garantir soma correta
                 const { data: profile, error: fetchError } = await supabaseAdmin
                     .from('profiles')
                     .select('balance')
                     .eq('id', userId)
-                    .single()
+                    .single();
 
                 if (fetchError) {
-                    console.error('Erro ao buscar perfil:', fetchError)
-                    return new Response(JSON.stringify({ error: "Profile fetch failed", details: fetchError }), { status: 200, headers: corsHeaders });
+                    console.error('Erro ao buscar perfil:', fetchError);
+                    // Se não achou perfil, não tem como dar saldo
+                    return new Response(JSON.stringify({ error: "User not found" }), { status: 200, headers: corsHeaders });
                 }
 
-                const currentBalance = Number(profile.balance || 0);
-                const amountToAdd = Number(amountReceived);
-                const newBalance = currentBalance + amountToAdd;
+                const currentBalance = Number(profile?.balance || 0);
+                const newBalance = currentBalance + amount;
 
-                // Update balance
                 const { error: updateError } = await supabaseAdmin
                     .from('profiles')
                     .update({ balance: newBalance })
-                    .eq('id', userId)
+                    .eq('id', userId);
 
                 if (updateError) {
-                    console.error('Erro ao atualizar saldo:', updateError)
-                    return new Response(JSON.stringify({ error: "Balance update failed", details: updateError }), { status: 200, headers: corsHeaders });
+                    console.error('Erro no UPDATE:', updateError);
+                    throw updateError;
                 }
 
-                console.log(`Saldo atualizado: ${currentBalance} -> ${newBalance}`);
+                console.log(`SUCESSO TOTAL! Saldo de ${userId} foi de R$${currentBalance} para R$${newBalance}`);
 
                 return new Response(JSON.stringify({ success: true, newBalance }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    status: 200
-                })
-            } else {
-                console.log(`Pagamento não está aprovado (Status: ${paymentData.status}). Ignorando.`);
-                return new Response(JSON.stringify({ status: paymentData.status }), { status: 200, headers: corsHeaders });
+                    status: 200,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
             }
         }
 
-        return new Response(JSON.stringify({ received: true }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-        })
+        return new Response(JSON.stringify({ received: true }), { status: 200, headers: corsHeaders });
 
-    } catch (error) {
-        console.error('CRITICAL Webhook Error:', error);
-        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-        })
+    } catch (err) {
+        console.error('CRITICAL CRASH:', err);
+        // Retornar 200 mesmo no erro para o MP parar de tentar (já que logamos o erro)
+        return new Response(JSON.stringify({ error: String(err) }), { status: 200, headers: corsHeaders });
     }
-})
+});
