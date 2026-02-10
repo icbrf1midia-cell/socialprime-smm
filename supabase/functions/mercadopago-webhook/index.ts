@@ -1,13 +1,10 @@
-// VERSÃO 10.0 - ULTRA LEVE (ZERO DEPENDÊNCIAS)
-// Eliminamos a biblioteca supabase-js para economizar memória e CPU.
-// Usamos REST API direto. Isso evita o crash de Boot.
+// WEBHOOK FINAL - SOCIALPRIME (Produção)
+import { createClient } from "supabase-js";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-console.log("Versão 10.0 LEVE - Esperando MP...");
 
 Deno.serve(async (req) => {
     // 1. Tratamento de CORS
@@ -16,98 +13,80 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const url = new URL(req.url);
-
-        // 2. Leitura do Corpo como Texto (Mais leve que JSON no inicio)
+        // Leitura segura do corpo
         const rawBody = await req.text();
-
-        // Log curto para confirmar recebimento sem poluir
-        console.log(`[V10] Recebido. Tamanho: ${rawBody.length} bytes`);
-
-        // Parse manual seguro
         let body;
         try {
             body = JSON.parse(rawBody);
         } catch {
-            console.log("Corpo não é JSON válido, ignorando.");
+            // Se não for JSON, ignora sem erro (pode ser ping do navegador)
             return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        const action = body?.action;
-        const type = body?.type;
-        const dataId = body?.data?.id;
-        const id = body?.id;
+        const { action, type, data } = body;
+        const id = data?.id || body?.id;
 
-        // 3. Filtro
+        // 2. Filtro: Só processa pagamentos
         if (action === 'payment.updated' || action === 'payment.created' || type === 'payment') {
-            const paymentId = dataId || id;
-            if (!paymentId) return new Response("Ignored", { status: 200, headers: corsHeaders });
+            if (!id) return new Response("OK", { status: 200, headers: corsHeaders });
 
-            console.log(`Processando ID: ${paymentId}`);
+            console.log(`[Webhook] Processando Pagamento ID: ${id}`);
 
-            // 4. Consulta Mercado Pago (Fetch Nativo)
+            // 3. Consulta ao Mercado Pago (Validação Oficial)
             const mpToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
-            const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
                 headers: { 'Authorization': `Bearer ${mpToken}` }
             });
 
             if (!mpRes.ok) {
-                console.log("Erro MP API"); // Log simples
-                return new Response("MP Error", { status: 200, headers: corsHeaders });
+                console.error(`Erro ao consultar MP: ${mpRes.status}`);
+                return new Response("OK", { status: 200, headers: corsHeaders });
             }
 
             const paymentData = await mpRes.json();
 
+            // 4. Se Aprovado, adiciona saldo
             if (paymentData.status === 'approved') {
                 const userId = paymentData.external_reference;
                 const amount = Number(paymentData.transaction_amount);
 
                 if (!userId) {
-                    console.log("Sem UserID");
+                    console.error("Pagamento sem UserID (external_reference). Ignorado.");
                     return new Response("OK", { status: 200, headers: corsHeaders });
                 }
 
-                console.log(`Aprovado! Creditando via REST API...`);
-
-                // 5. ATUALIZAÇÃO SUPABASE VIA REST (SEM BIBLIOTECA)
-                // Isso consome quase zero memória comparado ao createClient
+                // Conexão Admin (Service Role) para ignorar RLS e escrever no saldo
                 const sbUrl = Deno.env.get('SUPABASE_URL');
                 const sbKey = Deno.env.get('SOCIAL_ADMIN_KEY');
 
-                // Passo A: Ler Saldo (GET)
-                const getRes = await fetch(`${sbUrl}/rest/v1/profiles?id=eq.${userId}&select=balance`, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': sbKey,
-                        'Authorization': `Bearer ${sbKey}`
-                    }
+                const supabaseAdmin = createClient(sbUrl!, sbKey!, {
+                    auth: { autoRefreshToken: false, persistSession: false }
                 });
 
-                // Se falhar na leitura, assume 0 pra não quebrar (ou trata erro)
-                let currentBalance = 0;
-                if (getRes.ok) {
-                    const rows = await getRes.json();
-                    if (rows.length > 0) currentBalance = Number(rows[0].balance);
+                // Leitura do saldo atual
+                const { data: profile, error: fetchError } = await supabaseAdmin
+                    .from('profiles')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+
+                if (fetchError) {
+                    console.error(`Erro ao ler perfil ${userId}:`, fetchError);
+                    return new Response("OK", { status: 200, headers: corsHeaders });
                 }
 
-                const newBalance = currentBalance + amount;
+                const newBalance = Number(profile?.balance || 0) + amount;
 
-                // Passo B: Atualizar Saldo (PATCH)
-                const patchRes = await fetch(`${sbUrl}/rest/v1/profiles?id=eq.${userId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': sbKey,
-                        'Authorization': `Bearer ${sbKey}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({ balance: newBalance })
-                });
+                // Atualização
+                const { error: updateError } = await supabaseAdmin
+                    .from('profiles')
+                    .update({ balance: newBalance })
+                    .eq('id', userId);
 
-                if (patchRes.ok) {
-                    console.log(`SUCESSO V10! Saldo: ${newBalance}`);
+                if (updateError) {
+                    console.error("Erro ao atualizar saldo:", updateError);
                 } else {
-                    console.error(`Erro Update: ${await patchRes.text()}`);
+                    console.log(`SUCESSO: Saldo de ${userId} atualizado (+R$${amount}). Novo total: R$${newBalance}`);
                 }
             }
         }
@@ -118,7 +97,8 @@ Deno.serve(async (req) => {
         });
 
     } catch (err) {
-        console.error("ERRO:", err);
-        return new Response("Error handled", { status: 200, headers: corsHeaders });
+        console.error("Erro no Webhook:", err);
+        // Sempre retorna 200 para o Mercado Pago não ficar reenviando em caso de erro interno nosso
+        return new Response(JSON.stringify({ error: "Internal Error" }), { status: 200, headers: corsHeaders });
     }
 });

@@ -1,124 +1,127 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// CHECKOUT V2.0 - CRIAÇÃO DE PIX BLINDADA
+// Usa Deno.serve nativo (igual ao Webhook V10) para máxima compatibilidade.
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-    // 1. Debug: Check if API Key exists
-    const accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN')
-    console.log('Access Token exists?', !!accessToken)
+console.log("Checkout V2.0 - Serviço Iniciado");
 
-    // Handle CORS preflight
+Deno.serve(async (req) => {
+    // 1. CORS Pre-flight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
     try {
-        const rawBody = await req.json()
-        console.log('Body recebido:', JSON.stringify(rawBody))
+        // 2. Leitura e Validação do Corpo
+        const body = await req.json().catch(() => ({}));
+        const { amount, customer, userId } = body;
 
-        const { amount, customer, userId } = rawBody
+        console.log(`[Checkout] Pedido recebido. User: ${userId}, Valor: ${amount}`);
 
-        // STRICT CHECK: UserId is mandatory for balance update
-        if (!userId) {
-            throw new Error("UserId is mandatory for this operation");
+        // TRAVA DE SEGURANÇA: Se não tiver UserID, nem tenta criar o Pix.
+        if (!userId || userId.length < 10) {
+            console.error("ERRO: UserID inválido ou ausente!");
+            return new Response(JSON.stringify({ error: "UserID is mandatory" }), {
+                status: 400, headers: corsHeaders
+            });
         }
 
-        console.log(`[DEBUG] UserId received: ${userId}`)
+        if (!amount || Number(amount) <= 0) {
+            return new Response(JSON.stringify({ error: "Invalid amount" }), {
+                status: 400, headers: corsHeaders
+            });
+        }
 
-        // Mercado Pago expects "firstname" and "lastname" separately, but we can just put full name in first_name sometimes or split it.
-        // Ideally split.
+        // 3. Preparação dos Dados do Cliente
+        // O Mercado Pago é chato com nomes. Vamos garantir que tenha Nome e Sobrenome.
         let firstName = "Cliente";
         let lastName = "SocialPrime";
+
         if (customer?.name) {
-            const parts = customer.name.split(' ');
-            firstName = parts[0];
-            lastName = parts.slice(1).join(' ') || "SocialPrime";
+            const parts = customer.name.trim().split(' ');
+            if (parts.length > 0) firstName = parts[0];
+            if (parts.length > 1) lastName = parts.slice(1).join(' ');
         }
 
-        // Amount needs to be number
-        const transactionAmount = Number(amount);
+        // 4. URL DO WEBHOOK (FIXA E SEGURA)
+        // Usamos a URL exata do seu projeto para garantir que o MP notifique o lugar certo.
+        // Substitua 'ejpyblnvjjqcfdazqquy' se o seu ID de projeto mudar, mas por enquanto é esse.
+        const webhookUrl = "https://ejpyblnvjjqcfdazqquy.supabase.co/functions/v1/mercadopago-webhook";
 
+        // 5. Payload para o Mercado Pago
         const payload = {
-            transaction_amount: transactionAmount,
-            description: "Recarga de Saldo - SocialPrime",
+            transaction_amount: Number(amount),
+            description: "Recarga SocialPrime",
             payment_method_id: "pix",
             payer: {
-                email: customer?.email || "email@unknown.com",
+                email: customer?.email || "email@socialprime.com",
                 first_name: firstName,
                 last_name: lastName,
                 identification: {
                     type: "CPF",
-                    number: customer?.taxId?.replace(/\D/g, '') || ""
+                    // Remove tudo que não for número do CPF para evitar erro
+                    number: customer?.taxId ? customer.taxId.replace(/\D/g, '') : "19100000000"
                 }
             },
-            external_reference: userId, // CRITICAL: This links the payment to the Supabase User
-            notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook` // Dynamic URL
-        }
+            // AQUI ESTÁ O SEGREDO: O ID do usuário vai na referência externa
+            external_reference: String(userId),
+            notification_url: webhookUrl
+        };
 
-        console.log('Payload para Mercado Pago:', JSON.stringify(payload))
+        console.log("Enviando para MP:", JSON.stringify(payload));
 
-        const response = await fetch('https://api.mercadopago.com/v1/payments', {
+        // 6. Chamada à API do Mercado Pago
+        const mpToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+        if (!mpToken) throw new Error("Token MP ausente no Supabase");
+
+        const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${mpToken}`,
                 'Content-Type': 'application/json',
                 'X-Idempotency-Key': crypto.randomUUID()
             },
             body: JSON.stringify(payload)
-        })
+        });
 
-        const responseText = await response.text()
-        console.log(`Mercado Pago Status: ${response.status}`)
+        const responseText = await mpRes.text();
 
-        let responseData
-        try {
-            responseData = JSON.parse(responseText)
-        } catch {
-            responseData = { text: responseText }
+        // Tenta ler o JSON, se falhar usa o texto cru
+        let data;
+        try { data = JSON.parse(responseText); } catch { data = { error: responseText }; }
+
+        if (!mpRes.ok) {
+            console.error("Erro MP:", data);
+            return new Response(JSON.stringify({ error: "Erro ao criar Pix", details: data }), {
+                status: 400, headers: corsHeaders
+            });
         }
 
-        if (response.status !== 201 && response.status !== 200) {
-            console.error('Mercado Pago Error:', responseData)
-            throw new Error(`Mercado Pago API Error: ${responseData.message || JSON.stringify(responseData)}`)
-        }
+        // 7. Sucesso! Retorna o QR Code
+        const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
+        const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
+        const paymentId = data.id;
 
-        // Extract Pix Code and QR Code Base64
-        const pointOfInteraction = responseData.point_of_interaction;
-        const transactionData = pointOfInteraction?.transaction_data;
-        const qrCode = transactionData?.qr_code;
-        const qrCodeBase64 = transactionData?.qr_code_base64;
-        const ticketUrl = transactionData?.ticket_url; // Link to payment page if needed
+        console.log(`Pix Criado com Sucesso! ID: ${paymentId}`);
 
-        // Return to Frontend
-        return new Response(
-            JSON.stringify({
-                success: true,
-                pixCode: qrCode,
-                qrCodeBase64: qrCodeBase64,
-                paymentId: responseData.id,
-                status: responseData.status,
-                ticketUrl: ticketUrl
-            }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-            }
-        )
+        return new Response(JSON.stringify({
+            success: true,
+            pixCode: qrCode,
+            qrCodeBase64: qrCodeBase64,
+            paymentId: paymentId,
+            status: data.status
+        }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
 
-    } catch (error) {
-        console.error('Edge Function Internal Error:', error)
-        return new Response(
-            JSON.stringify({
-                error: error instanceof Error ? error.message : String(error),
-                type: 'InternalFunctionError'
-            }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400,
-            }
-        )
+    } catch (err) {
+        console.error("Erro Crítico no Checkout:", err);
+        return new Response(JSON.stringify({ error: String(err) }), {
+            status: 500, headers: corsHeaders
+        });
     }
-})
+});
