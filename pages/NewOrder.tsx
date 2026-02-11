@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface Service {
@@ -25,6 +25,7 @@ const NewOrder: React.FC = () => {
   const [link, setLink] = useState('');
 
   const location = useLocation();
+  const navigate = useNavigate(); // Added for redirect
 
   // Fetch User Balance
   useEffect(() => {
@@ -87,8 +88,69 @@ const NewOrder: React.FC = () => {
   // Filter services by selected category
   const filteredServices = services.filter(s => s.category === selectedCategory);
 
+  // Submit Order
+  const handleCreateOrder = async () => {
+    if (!selectedService || !userBalance || userBalance < total) {
+      alert('Saldo insuficiente ou serviço inválido.');
+      return;
+    }
+
+    if (!link) {
+      alert('Por favor, insira o link.');
+      return;
+    }
+
+    setLoading(true); // Re-using loading state or create a new one for submitting
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // 1. Deduct Balance
+      const newBalance = userBalance - total;
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ balance: newBalance })
+        .eq('id', user.id);
+
+      if (balanceError) throw balanceError;
+
+      // 2. Create Order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          service_id: selectedService.service_id, // Store ID as text/string if schema requires, or number
+          link: link,
+          quantity: quantity,
+          status: 'pending', // Initial status
+          // cost: total // If schema has cost column, uncomment
+        });
+
+      if (orderError) {
+        // Rollback balance if order creation fails (optional, but good practice. For now simpler alerting)
+        console.error('Erro ao criar pedido, contate o suporte immediately.', orderError);
+        alert('Erro ao registrar pedido. Seu saldo pode ter sido descontado. Contate o suporte.');
+        return;
+      }
+
+      // 3. API Call (Placeholder)
+      // TODO: Call SMM API here
+      alert('Pedido registrado com sucesso! (Envio automático para API em configuração)');
+
+      // 4. Redirect
+      navigate('/history');
+
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      alert('Erro ao processar pedido: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto w-full">
+    <div className="max-w-7xl mx-auto w-full pb-32">
       <div className="mb-8">
         <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
         <p className="text-text-secondary text-base max-w-2xl">
@@ -238,9 +300,13 @@ const NewOrder: React.FC = () => {
                 <p className="text-xs text-right text-text-secondary mb-6">
                   Saldo disponível: <span className={`font-bold ${userBalance !== null && userBalance < total ? 'text-red-500' : 'text-emerald-500'}`}>R$ {userBalance !== null ? userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}</span>
                 </p>
-                <button className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed" disabled={!selectedService || total === 0}>
-                  Finalizar Pedido
-                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <button
+                  onClick={handleCreateOrder}
+                  className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedService || total === 0 || (userBalance !== null && userBalance < total) || loading}
+                >
+                  {loading ? 'Processando...' : 'Finalizar Pedido'}
+                  {!loading && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>}
                 </button>
 
                 {selectedService && (
