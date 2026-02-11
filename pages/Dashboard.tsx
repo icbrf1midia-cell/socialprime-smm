@@ -149,16 +149,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="flex gap-4 mb-8">
-        <button className="flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-bold hover:bg-emerald-500/20 transition-colors">
-          <span className="material-symbols-outlined text-[20px]">add_card</span>
-          Adicionar Saldo
-        </button>
-        <button className="flex items-center gap-2 h-10 px-4 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
-          <span className="material-symbols-outlined text-[20px]">add_circle</span>
-          Novo Pedido
-        </button>
-      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Conditional Card: Provider Balance (Admin) OR Active Orders (Client) */}
