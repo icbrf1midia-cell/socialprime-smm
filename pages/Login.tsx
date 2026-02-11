@@ -54,29 +54,29 @@ const Login: React.FC = () => {
         </div>
 
         <div className="relative z-10 max-w-lg mb-0 lg:mb-8">
-          <div className="hidden lg:inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-xl shadow-primary/30 text-white mb-2 lg:mb-6 backdrop-blur-sm border border-white/10 animate-fade-in-up">
-            <span className="material-symbols-outlined text-[32px]">diamond</span>
+          <div className="hidden lg:inline-flex items-center justify-center w-10 h-10 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-xl shadow-primary/30 text-white mb-2 lg:mb-6 backdrop-blur-sm border border-white/10 animate-fade-in-up">
+            <span className="material-symbols-outlined text-[20px] lg:text-[32px]">diamond</span>
           </div>
 
-          <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-white mb-2 lg:mb-6 leading-[1.1] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <h1 className="text-2xl lg:text-5xl font-bold tracking-tight text-white mb-2 lg:mb-6 leading-tight lg:leading-[1.1] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             A Autoridade Digital que Você Merece.
           </h1>
 
-          <p className="text-slate-400 text-lg leading-relaxed animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <p className="text-slate-400 text-xs lg:text-lg leading-relaxed animate-fade-in-up line-clamp-3 lg:line-clamp-none" style={{ animationDelay: '200ms' }}>
             Desbloqueie o potencial máximo do seu perfil. A plataforma líder no Brasil para quem busca crescimento acelerado, resultados reais e domínio nas redes sociais.
           </p>
         </div>
       </div>
 
       {/* Right Side (Form) */}
-      <div className="flex flex-1 flex-col justify-center items-center px-4 py-6 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none">
-        <div className="w-full max-w-[420px] space-y-8">
+      <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none">
+        <div className="w-full max-w-[420px] space-y-4">
           <div className="text-center sm:text-left">
             <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Bem-vindo de volta</h2>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Acesse sua conta SocialPrime para continuar.</p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleLogin}>
+          <form className="space-y-3" onSubmit={handleLogin}>
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg">
                 {error}
@@ -90,7 +90,7 @@ const Login: React.FC = () => {
                   <span className="material-symbols-outlined text-slate-400 text-[20px]">mail</span>
                 </div>
                 <input
-                  className="block w-full rounded-lg border-0 py-3 pl-10 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 bg-white dark:bg-[#1c2732] placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  className="block w-full rounded-lg border-0 py-2 pl-10 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 bg-white dark:bg-[#1c2732] placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   placeholder="exemplo@email.com"
                   type="email"
                   value={email}
@@ -106,7 +106,7 @@ const Login: React.FC = () => {
                   <span className="material-symbols-outlined text-slate-400 text-[20px]">lock</span>
                 </div>
                 <input
-                  className="block w-full rounded-lg border-0 py-3 pl-10 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 bg-white dark:bg-[#1c2732] placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  className="block w-full rounded-lg border-0 py-2 pl-10 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 bg-white dark:bg-[#1c2732] placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   placeholder="Insira sua senha"
                   type="password"
                   value={password}
@@ -119,13 +119,13 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center rounded-lg bg-primary px-3 py-3.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/90 transition-all duration-200 disabled:opacity-70 disabled:cursor-wait"
+              className="flex w-full justify-center rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary/90 transition-all duration-200 disabled:opacity-70 disabled:cursor-wait"
             >
               {loading ? 'Entrando...' : 'Entrar na Plataforma'}
             </button>
           </form>
 
-          <p className="mt-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
             Não tem uma conta? <Link to="/register" className="font-semibold leading-6 text-primary hover:text-primary/80 transition-colors ml-1">Criar conta grátis</Link>
           </p>
         </div>
