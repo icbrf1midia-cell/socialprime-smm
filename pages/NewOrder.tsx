@@ -88,7 +88,7 @@ const NewOrder: React.FC = () => {
   const filteredServices = services.filter(s => s.category === selectedCategory);
 
   return (
-    <div className="max-w-7xl mx-auto w-full">
+    <div className="max-w-7xl mx-auto w-full pb-32">
       <div className="mb-8">
         <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
         <p className="text-text-secondary text-base max-w-2xl">

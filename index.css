@@ -13,5 +13,11 @@
 body {
     margin: 0;
     min-width: 320px;
-    min-height: 100vh;
+    height: auto;
+    min-height: 100%;
+}
+
+html {
+    height: auto;
+    min-height: 100%;
 }
