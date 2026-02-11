@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface Service {
@@ -22,6 +22,8 @@ const NewOrder: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1000);
   const [link, setLink] = useState('');
 
+  const location = useLocation();
+
   // Fetch Services on Load
   useEffect(() => {
     const fetchServices = async () => {
@@ -33,12 +35,23 @@ const NewOrder: React.FC = () => {
         setServices(data);
         const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category)));
         setCategories(uniqueCategories);
+
+        // Check for category in URL params AFTER services are loaded
+        const params = new URLSearchParams(location.search);
+        const categoryParam = params.get('category');
+        if (categoryParam) {
+          // Case-insensitive matching using includes for flexibility
+          const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
+          if (match) {
+            setSelectedCategory(match);
+          }
+        }
       }
       setLoading(false);
     };
 
     fetchServices();
-  }, []);
+  }, [location.search]);
 
   const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
 

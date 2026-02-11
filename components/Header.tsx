@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 
 const Header: React.FC = () => {
   const [balance, setBalance] = React.useState<number | null>(null);
+  const [showNotifications, setShowNotifications] = React.useState(false);
 
   React.useEffect(() => {
     // Basic fetch for balance - ideally this would be in a global context
@@ -64,10 +65,54 @@ const Header: React.FC = () => {
           <span className="truncate mr-2 hidden sm:inline">Add Saldo</span>
           <span className="material-symbols-outlined text-[18px]">add_card</span>
         </Link>
-        <button className="relative p-2 text-slate-400 hover:text-slate-500 dark:hover:text-white transition-colors">
-          <span className="material-symbols-outlined">notifications</span>
-          <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-surface-dark"></span>
-        </button>
+
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2 text-slate-400 hover:text-slate-500 dark:hover:text-white transition-colors outline-none"
+          >
+            <span className="material-symbols-outlined">notifications</span>
+            <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-surface-dark"></span>
+          </button>
+
+          {/* Dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
+                <span className="font-bold text-slate-900 dark:text-white text-sm">Notificações</span>
+                <span className="text-[10px] text-primary font-medium cursor-pointer hover:underline">Marcar como lidas</span>
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                <div className="p-4 hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border-b border-slate-100 dark:border-border-dark/50 last:border-0">
+                  <div className="flex gap-3">
+                    <div className="mt-1 size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-primary text-sm">rocket_launch</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">Bem-vindo ao SocialPrime 2.0!</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Conheça nossa nova plataforma com entregas mais rápidas.</p>
+                      <p className="text-[10px] text-slate-400 mt-2">Há 2 horas</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer">
+                  <div className="flex gap-3">
+                    <div className="mt-1 size-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-purple-500 text-sm">music_note</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">Novos serviços de TikTok</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Adicionamos curtidas brasileiras reais para seus vídeos.</p>
+                      <p className="text-[10px] text-slate-400 mt-2">Ontem</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={() => supabase.auth.signOut()}
           className="p-2 text-slate-400 hover:text-white transition-colors"

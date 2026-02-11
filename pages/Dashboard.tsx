@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
   const [providerBalance, setProviderBalance] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [ordersCount, setOrdersCount] = useState<number>(0);
@@ -54,15 +55,28 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        // Fetch User Balance from Supabase
+        // Fetch User Balance and Name from Supabase
         const { data: profile } = await supabase
           .from('profiles')
-          .select('balance')
+          .select('balance, full_name, username')
           .eq('id', user.id)
           .single();
 
         if (profile) {
           setUserBalance(profile.balance);
+          // Set User Name logic: Full Name > Username > Email Prefix
+          if (profile.full_name) {
+            setUserName(profile.full_name.split(' ')[0]); // First name
+          } else if (profile.username) {
+            setUserName(profile.username);
+          } else if (user.email) {
+            const nameFromEmail = user.email.split('@')[0];
+            setUserName(nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1));
+          }
+        } else if (user.email) {
+          // Fallback if no profile found
+          const nameFromEmail = user.email.split('@')[0];
+          setUserName(nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1));
         }
 
         // Fetch Total Orders Count
@@ -85,10 +99,13 @@ const Dashboard: React.FC = () => {
         // Fetch Recent Orders
         const { data: orders } = await supabase
           .from('orders')
-          .select('*')
+          .select('*, services(name)') // Try to join service name
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5);
+
+        // If the join works, orders will have a 'services' object. 
+        // If not (no FK), we might need another approach, but let's assume standard proper relational design first.
 
         if (orders) setRecentOrders(orders);
         setLoadingOrders(false);
@@ -107,7 +124,7 @@ const Dashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto w-full">
       <div className="mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          {userEmail ? `Painel de ${userEmail}` : 'Dashboard do Cliente'}
+          {userName ? `Bem-vindo, ${userName}` : 'Bem-vindo ao SocialPrime'}
         </h2>
         <p className="text-slate-500 dark:text-text-secondary">Acompanhe seus pedidos e crescimento nas redes sociais.</p>
       </div>
@@ -216,10 +233,15 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Area */}
-        <div className="lg:col-span-2 bg-card-dark rounded-xl border border-border-dark p-6">
-          <h3 className="text-lg font-bold text-white mb-6">Desempenho da Conta</h3>
-          <div className="h-[300px] w-full flex items-center justify-center text-text-secondary border-2 border-dashed border-border-dark rounded-lg">
-            <p>Gráfico de pedidos será exibido aqui</p>
+        <div className="lg:col-span-2 bg-card-dark rounded-xl border border-border-dark p-6 flex flex-col">
+          <h3 className="text-lg font-bold text-white mb-6">Análise de Crescimento</h3>
+          <div className="h-[300px] w-full flex flex-col items-center justify-center text-text-secondary border-2 border-dashed border-border-dark rounded-lg bg-surface-dark/50 p-6 text-center">
+            <span className="material-symbols-outlined text-4xl text-slate-600 mb-4">monitoring</span>
+            <p className="font-medium text-white mb-2">Sem dados suficientes para análise</p>
+            <p className="text-sm text-text-secondary mb-6 max-w-sm">Faça seu primeiro pedido para visualizar o gráfico de crescimento do seu perfil em tempo real.</p>
+            <Link to="/new-order" className="px-6 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-primary/20">
+              Fazer Novo Pedido
+            </Link>
           </div>
         </div>
 
@@ -227,26 +249,26 @@ const Dashboard: React.FC = () => {
         <div className="bg-card-dark rounded-xl border border-border-dark p-6">
           <h3 className="text-lg font-bold text-white mb-6">Acesso Rápido</h3>
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
+            <Link to="/new-order?category=INSTAGRAM%20SEGUIDORES%20BRASILEIRO" className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
               <span className="material-symbols-outlined text-3xl text-pink-500 mb-2 group-hover:scale-110 transition-transform">photo_camera</span>
               <span className="text-sm font-medium text-white">Instagram</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
+            </Link>
+            <Link to="/new-order?category=TikTok" className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
               <span className="material-symbols-outlined text-3xl text-black dark:text-white mb-2 group-hover:scale-110 transition-transform">music_note</span>
               <span className="text-sm font-medium text-white">TikTok</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
+            </Link>
+            <Link to="/new-order?category=YouTube" className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
               <span className="material-symbols-outlined text-3xl text-red-500 mb-2 group-hover:scale-110 transition-transform">play_arrow</span>
               <span className="text-sm font-medium text-white">YouTube</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
+            </Link>
+            <Link to="/new-order?category=Facebook" className="flex flex-col items-center justify-center p-4 rounded-lg bg-[#1a1a2e] hover:bg-[#23233b] border border-border-dark transition-all group">
               <span className="material-symbols-outlined text-3xl text-blue-600 mb-2 group-hover:scale-110 transition-transform">thumb_up</span>
               <span className="text-sm font-medium text-white">Facebook</span>
-            </button>
+            </Link>
           </div>
-          <button className="w-full mt-6 text-sm text-primary hover:text-primary-hover font-medium transition-colors">
+          <Link to="/new-order" className="w-full mt-6 text-sm text-primary hover:text-primary-hover font-medium transition-colors block text-center">
             Ver todos os serviços
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -285,7 +307,7 @@ const Dashboard: React.FC = () => {
                   <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors">
                     <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">#{order.id.slice(0, 8)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                      {order.service_id}
+                      {order.services?.name || `ID: ${order.service_id}`}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-primary truncate max-w-[150px] block" title={order.link}>
