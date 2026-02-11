@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const [profile, setProfile] = React.useState<{ full_name: string; balance: number } | null>(null);
+  const [profile, setProfile] = React.useState<{ full_name: string; balance: number; avatar_url?: string } | null>(null);
   const [userEmail, setUserEmail] = React.useState<string | null>(null);
   const ADMIN_EMAIL = 'brunomeueditor@gmail.com';
 
@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         setUserEmail(user.email || null);
         const { data } = await supabase
           .from('profiles')
-          .select('full_name, balance')
+          .select('*')
           .eq('id', user.id)
           .single();
         if (data) setProfile(data);
@@ -114,9 +114,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#0f1520]">
           <div className="flex items-center gap-3">
             <div
-              className="h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary"
-              style={{ backgroundImage: `url('https://i.pravatar.cc/150?img=11')` }}
-            ></div>
+              className={`h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary ${!profile?.avatar_url ? 'bg-primary/10 flex items-center justify-center' : ''}`}
+              style={profile?.avatar_url ? { backgroundImage: `url('${profile.avatar_url}')` } : {}}
+            >
+              {!profile?.avatar_url && <span className="material-symbols-outlined text-primary text-sm">person</span>}
+            </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold dark:text-white truncate max-w-[140px]">{profile?.full_name || 'Usuário'}</span>
             </div>
