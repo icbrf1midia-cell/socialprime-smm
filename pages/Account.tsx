@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { Link } from 'react-router-dom';
 
 const Account: React.FC = () => {
    const [loading, setLoading] = useState(true);
@@ -155,10 +156,10 @@ const Account: React.FC = () => {
                      </div>
                   </div>
                   <div className="flex gap-3 mt-auto">
-                     <button className="flex-1 min-w-[140px] items-center justify-center gap-2 rounded-lg h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20 flex">
+                     <Link to="/add-funds" className="flex-1 min-w-[140px] items-center justify-center gap-2 rounded-lg h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20 flex">
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         <span>Adicionar Saldo</span>
-                     </button>
+                     </Link>
                   </div>
                </div>
             </div>
