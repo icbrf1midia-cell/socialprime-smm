@@ -56,11 +56,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-background-light dark:bg-background-dark">
-        <Header />
+        <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide">
           {children}
         </main>

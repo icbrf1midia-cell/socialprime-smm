@@ -2,7 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleSidebar: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const [balance, setBalance] = React.useState<number | null>(null);
   const [showNotifications, setShowNotifications] = React.useState(false);
 
@@ -25,7 +29,10 @@ const Header: React.FC = () => {
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark z-10 shrink-0">
       <div className="flex items-center gap-4 lg:hidden">
-        <button className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white">
+        <button
+          onClick={onToggleSidebar}
+          className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+        >
           <span className="material-symbols-outlined">menu</span>
         </button>
         <span className="text-lg font-bold dark:text-white flex items-center gap-2">
