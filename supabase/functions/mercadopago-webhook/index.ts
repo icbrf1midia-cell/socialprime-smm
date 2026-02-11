@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
             if (paymentData.status === 'approved') {
                 const userId = paymentData.external_reference;
                 const amount = Number(paymentData.transaction_amount);
+                const paymentId = String(id);
 
                 if (!userId) {
                     console.error("Pagamento sem UserID (external_reference). Ignorado.");
@@ -62,6 +63,18 @@ Deno.serve(async (req) => {
                 const supabaseAdmin = createClient(sbUrl!, sbKey!, {
                     auth: { autoRefreshToken: false, persistSession: false }
                 });
+
+                // IDEMPOTENCIA: Verifica se já processou
+                const { data: existingTx } = await supabaseAdmin
+                    .from('transactions')
+                    .select('id')
+                    .eq('payment_id', paymentId)
+                    .single();
+
+                if (existingTx) {
+                    console.log(`[Webhook] Pagamento ${paymentId} já processado anteriormente. Ignorando duplicidade.`);
+                    return new Response("OK", { status: 200, headers: corsHeaders });
+                }
 
                 // Leitura do saldo atual
                 const { data: profile, error: fetchError } = await supabaseAdmin
@@ -77,7 +90,7 @@ Deno.serve(async (req) => {
 
                 const newBalance = Number(profile?.balance || 0) + amount;
 
-                // Atualização
+                // Atualização do Saldo
                 const { error: updateError } = await supabaseAdmin
                     .from('profiles')
                     .update({ balance: newBalance })
@@ -87,6 +100,16 @@ Deno.serve(async (req) => {
                     console.error("Erro ao atualizar saldo:", updateError);
                 } else {
                     console.log(`SUCESSO: Saldo de ${userId} atualizado (+R$${amount}). Novo total: R$${newBalance}`);
+
+                    // Registra a transação para evitar duplicidade futura
+                    await supabaseAdmin
+                        .from('transactions')
+                        .insert({
+                            payment_id: paymentId,
+                            user_id: userId,
+                            amount: amount,
+                            status: 'approved'
+                        });
                 }
             }
         }
