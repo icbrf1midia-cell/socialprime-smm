@@ -30,10 +30,21 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-row bg-background-dark">
-      {/* Left Side */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 relative flex-col justify-end p-12 overflow-hidden bg-surface-dark border-r border-white/5">
-        <div className="absolute inset-0 z-0 opacity-40">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-background-dark">
+
+      {/* Mobile Header */}
+      <div className="flex lg:hidden items-center justify-center p-6 bg-surface-dark border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30 text-white backdrop-blur-sm border border-white/10">
+            <span className="material-symbols-outlined text-[18px]">diamond</span>
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white leading-none">SOCIALPRIME</span>
+        </div>
+      </div>
+
+      {/* Left Side (Hero) */}
+      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-end p-8 lg:p-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[500px] lg:min-h-auto order-1 lg:order-none">
+        <div className="absolute inset-0 z-0 opacity-40 animate-float">
           <img
             alt="Abstract network"
             className="w-full h-full object-cover"
@@ -41,17 +52,24 @@ const Login: React.FC = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-transparent"></div>
         </div>
+
         <div className="relative z-10 max-w-lg mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-xl shadow-primary/30 text-white mb-6 backdrop-blur-sm border border-white/10">
+          <div className="hidden lg:inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-xl shadow-primary/30 text-white mb-6 backdrop-blur-sm border border-white/10 animate-fade-in-up">
             <span className="material-symbols-outlined text-[32px]">diamond</span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-4 leading-[1.2]">SocialPrime</h1>
-          <p className="text-slate-400 text-lg leading-relaxed">A plataforma #1 para revenda de serviços sociais. Qualidade premium, entrega instantânea e os melhores preços do mercado.</p>
+
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-white mb-6 leading-[1.1] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            A Autoridade Digital que Você Merece.
+          </h1>
+
+          <p className="text-slate-400 text-lg leading-relaxed animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            Desbloqueie o potencial máximo do seu perfil. A plataforma líder no Brasil para quem busca crescimento acelerado, resultados reais e domínio nas redes sociais.
+          </p>
         </div>
       </div>
 
-      {/* Right Side */}
-      <div className="flex flex-1 flex-col justify-center items-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark">
+      {/* Right Side (Form) */}
+      <div className="flex flex-1 flex-col justify-center items-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none">
         <div className="w-full max-w-[420px] space-y-8">
           <div className="text-center sm:text-left">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Bem-vindo de volta</h2>
