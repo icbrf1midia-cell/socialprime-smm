@@ -91,6 +91,7 @@ const ApiConfig: React.FC = () => {
         min: s.min,
         max: s.max,
         type: s.type,
+        description: s.description || s.desc || '', // Map description from provider
       }));
 
       const { error: upsertError } = await supabase
