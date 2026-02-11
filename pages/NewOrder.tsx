@@ -164,11 +164,7 @@ const NewOrder: React.FC = () => {
                       <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Min/Max: <span className="text-white">{selectedService.min} / {selectedService.max}</span></li>
                       <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Tipo: <span className="text-white">{selectedService.type}</span></li>
                     </ul>
-                    {selectedService.description && (
-                      <div className="mt-3 pt-3 border-t border-white/10 text-xs text-emerald-200">
-                        <div dangerouslySetInnerHTML={{ __html: selectedService.description }} />
-                      </div>
-                    )}
+                    {/* Description removed from here to move to right column */}
                   </div>
                 </div>
               )}
@@ -240,12 +236,25 @@ const NewOrder: React.FC = () => {
                   <span className="text-3xl font-black text-primary">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <p className="text-xs text-right text-text-secondary mb-6">
-                  Saldo disponível: <span className="text-white font-bold">R$ {userBalance !== null ? userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}</span>
+                  Saldo disponível: <span className={`font-bold ${userBalance !== null && userBalance < total ? 'text-red-500' : 'text-emerald-500'}`}>R$ {userBalance !== null ? userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}</span>
                 </p>
                 <button className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed" disabled={!selectedService || total === 0}>
                   Finalizar Pedido
                   <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
+
+                {selectedService?.description && (
+                  <div className="mt-6 bg-white/5 rounded-xl p-4 border border-white/10">
+                    <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-[18px]">info</span>
+                      Informações Importantes do Serviço
+                    </h4>
+                    <div
+                      className="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: selectedService.description }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
