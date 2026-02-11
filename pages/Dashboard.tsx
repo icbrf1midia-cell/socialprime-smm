@@ -55,15 +55,21 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        // Fetch User Balance and Name from Supabase
+        // Fetch User Profile (Balance and Name)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('balance, full_name, username')
+          .select('*') // Select all to be safe
           .eq('id', user.id)
           .single();
 
         if (profile) {
-          setUserBalance(profile.balance);
+          // Explicitly set balance
+          if (profile.balance !== undefined && profile.balance !== null) {
+            setUserBalance(profile.balance);
+          } else {
+            setUserBalance(0);
+          }
+
           // Set User Name logic: Full Name > Username > Email Prefix
           if (profile.full_name) {
             setUserName(profile.full_name.split(' ')[0]); // First name
@@ -195,7 +201,7 @@ const Dashboard: React.FC = () => {
               ? `R$ ${userBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
               : 'R$ 0,00'}
           </h3>
-          <p className="text-xs text-text-secondary mt-2">Saldo em conta Supabase</p>
+          <p className="text-xs text-text-secondary mt-2">Disponível para uso</p>
         </div>
 
         {/* Total Orders */}

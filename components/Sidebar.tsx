@@ -119,7 +119,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             ></div>
             <div className="flex flex-col">
               <span className="text-sm font-bold dark:text-white truncate max-w-[140px]">{profile?.full_name || 'Usuário'}</span>
-              <span className="text-xs text-slate-500 dark:text-text-secondary">R$ {profile?.balance?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}</span>
             </div>
           </div>
         </div>
