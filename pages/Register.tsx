@@ -75,7 +75,7 @@ const Register: React.FC = () => {
             </div>
 
             <div className="relative z-10 max-w-lg">
-               <h2 className="text-4xl font-bold leading-tight tracking-tight text-white mb-4">Domine as redes sociais com a SocialPrime.</h2>
+               <h2 className="text-4xl font-bold leading-tight tracking-tight text-white mb-4">Domine com a SocialPrime.</h2>
                <div className="mt-10 flex gap-8 border-t border-border-dark pt-8">
                   <div><p className="text-3xl font-bold text-white">10k+</p><p className="text-sm text-text-secondary mt-1">Contas criadas</p></div>
                   <div><p className="text-3xl font-bold text-white">5M+</p><p className="text-sm text-text-secondary mt-1">Pedidos Entregues</p></div>
