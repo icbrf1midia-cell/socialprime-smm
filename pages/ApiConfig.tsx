@@ -82,6 +82,8 @@ const ApiConfig: React.FC = () => {
         throw new Error('Formato de resposta inválido.');
       }
 
+      console.log('🔍 Exemplo de Serviço da API:', services[0]); // Debug log for user inspection
+
       // 2. Process and Upsert logic
       const servicesToUpsert = services.map((s: any) => ({
         service_id: s.service,
@@ -91,7 +93,8 @@ const ApiConfig: React.FC = () => {
         min: s.min,
         max: s.max,
         type: s.type,
-        description: s.description || s.desc || '', // Map description from provider
+        // Robust description mapping: checks description, desc, content, info, details, or falls back to 'Tipo: [type]'
+        description: s.description || s.desc || s.content || s.info || s.details || (s.type ? `Tipo: ${s.type}` : '') || '',
       }));
 
       const { error: upsertError } = await supabase

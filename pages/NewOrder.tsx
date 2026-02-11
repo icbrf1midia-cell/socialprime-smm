@@ -243,16 +243,22 @@ const NewOrder: React.FC = () => {
                   <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
 
-                {selectedService?.description && (
+                {selectedService && (
                   <div className="mt-6 bg-white/5 rounded-xl p-4 border border-white/10">
                     <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
                       <span className="material-symbols-outlined text-primary text-[18px]">info</span>
                       Informações Importantes do Serviço
                     </h4>
-                    <div
-                      className="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: selectedService.description }}
-                    />
+                    {selectedService.description ? (
+                      <div
+                        className="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: selectedService.description }}
+                      />
+                    ) : (
+                      <p className="text-sm text-slate-500 italic">
+                        Descrição não fornecida pelo operador para este serviço.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
