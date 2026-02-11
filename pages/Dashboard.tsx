@@ -37,18 +37,28 @@ const Dashboard: React.FC = () => {
         if (user.email) setUserEmail(user.email);
 
         // CONDITIONAL: Fetch Provider Balance ONLY for Admin
+        // CONDITIONAL: Fetch Provider Balance ONLY for Admin
         if (user.email === 'brunomeueditor@gmail.com') {
           try {
-            const { data: balanceData, error: proxyError } = await supabase.functions.invoke('smm-proxy', {
-              body: {
-                url: 'https://agenciapopular.com/api/v2', // Default API URL
-                key: import.meta.env.VITE_PROVIDER_API_KEY,
-                action: 'balance',
-              },
-            });
+            // 1. Fetch Credentials from admin_config
+            const { data: config } = await supabase
+              .from('admin_config')
+              .select('api_url, api_key')
+              .single();
 
-            if (!proxyError && balanceData && balanceData.balance) {
-              setProviderBalance(parseFloat(balanceData.balance));
+            if (config?.api_url && config?.api_key) {
+              // 2. Fetch Balance via Proxy
+              const { data: balanceData, error: proxyError } = await supabase.functions.invoke('smm-proxy', {
+                body: {
+                  url: config.api_url,
+                  key: config.api_key,
+                  action: 'balance',
+                },
+              });
+
+              if (!proxyError && balanceData && balanceData.balance) {
+                setProviderBalance(parseFloat(balanceData.balance));
+              }
             }
           } catch (err) {
             console.error('Error fetching provider balance:', err);
