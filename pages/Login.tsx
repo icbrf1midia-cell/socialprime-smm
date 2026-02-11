@@ -43,7 +43,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Left Side (Hero) */}
-      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-end p-5 lg:p-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[35vh] lg:min-h-auto order-1 lg:order-none">
+      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-center pt-8 pb-4 lg:py-12 px-5 lg:px-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[35vh] lg:min-h-auto order-1 lg:order-none">
         <div className="absolute inset-0 z-0 opacity-40 animate-float">
           <img
             alt="Abstract network"
@@ -62,7 +62,7 @@ const Login: React.FC = () => {
             A Autoridade Digital que Você Merece.
           </h1>
 
-          <p className="text-slate-400 text-xs lg:text-lg leading-relaxed animate-fade-in-up line-clamp-3 lg:line-clamp-none" style={{ animationDelay: '200ms' }}>
+          <p className="text-slate-400 text-sm lg:text-lg leading-tight lg:leading-relaxed animate-fade-in-up line-clamp-3 lg:line-clamp-none mb-2" style={{ animationDelay: '200ms' }}>
             Desbloqueie o potencial máximo do seu perfil. A plataforma líder no Brasil para quem busca crescimento acelerado, resultados reais e domínio nas redes sociais.
           </p>
         </div>
