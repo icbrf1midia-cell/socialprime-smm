@@ -197,16 +197,7 @@ const AddFunds: React.FC = () => {
                     {/* LEFT COLUMN: Personal Data */}
                     <div className="flex flex-col gap-6">
 
-                        {/* Info/Safety Badge */}
-                        <div className="flex flex-col md:flex-row gap-4 p-4 rounded-lg bg-blue-900/20 border border-blue-900/50 text-sm">
-                            <div className="flex gap-2">
-                                <span className="material-symbols-outlined text-primary">verified_user</span>
-                                <div className="text-blue-200">
-                                    <span className="font-bold text-white block">Ambiente Seguro</span>
-                                    Seus dados são criptografados.
-                                </div>
-                            </div>
-                        </div>
+
 
                         <div>
                             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -253,6 +244,24 @@ const AddFunds: React.FC = () => {
                                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">lock</span>
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Info (Moved) */}
+                        <div className="flex flex-col md:flex-row gap-4 p-4 rounded-lg bg-blue-900/20 border border-blue-900/50 text-sm">
+                            <div className="flex gap-2">
+                                <span className="material-symbols-outlined text-primary">verified_user</span>
+                                <div className="text-blue-200">
+                                    <span className="font-bold text-white block">Pagamento Seguro</span>
+                                    Seus dados são processados com criptografia de ponta a ponta.
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="material-symbols-outlined text-primary">bolt</span>
+                                <div className="text-blue-200">
+                                    <span className="font-bold text-white block">Liberação Automática</span>
+                                    O saldo entra na sua conta segundos após o pagamento.
                                 </div>
                             </div>
                         </div>
@@ -371,24 +380,6 @@ const AddFunds: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {/* Footer Info */}
-            <div className="flex flex-col md:flex-row gap-4 p-4 rounded-lg bg-blue-900/20 border border-blue-900/50 text-sm">
-                <div className="flex gap-2">
-                    <span className="material-symbols-outlined text-primary">verified_user</span>
-                    <div className="text-blue-200">
-                        <span className="font-bold text-white block">Pagamento Seguro</span>
-                        Seus dados são processados com criptografia de ponta a ponta.
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <span className="material-symbols-outlined text-primary">bolt</span>
-                    <div className="text-blue-200">
-                        <span className="font-bold text-white block">Liberação Automática</span>
-                        O saldo entra na sua conta segundos após o pagamento.
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
