@@ -100,50 +100,34 @@ const NewOrder: React.FC = () => {
       return;
     }
 
-    setLoading(true); // Re-using loading state or create a new one for submitting
+    setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // 1. Deduct Balance
-      const newBalance = userBalance - total;
-      const { error: balanceError } = await supabase
-        .from('profiles')
-        .update({ balance: newBalance })
-        .eq('id', user.id);
-
-      if (balanceError) throw balanceError;
-
-      // 2. Create Order
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          service_id: selectedService.service_id, // Store ID as text/string if schema requires, or number
+      // Call Secure Edge Function
+      const { data, error } = await supabase.functions.invoke('place-order', {
+        body: {
+          service_id: selectedService.service_id,
           link: link,
-          quantity: quantity,
-          status: 'pending', // Initial status
-          // cost: total // If schema has cost column, uncomment
-        });
+          quantity: quantity
+        }
+      });
 
-      if (orderError) {
-        // Rollback balance if order creation fails (optional, but good practice. For now simpler alerting)
-        console.error('Erro ao criar pedido, contate o suporte immediately.', orderError);
-        alert('Erro ao registrar pedido. Seu saldo pode ter sido descontado. Contate o suporte.');
-        return;
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      // 3. API Call (Placeholder)
-      // TODO: Call SMM API here
-      alert('Pedido registrado com sucesso! (Envio automático para API em configuração)');
-
-      // 4. Redirect
+      // Success
+      alert('Pedido realizado com sucesso! Acompanhe o status no seu histórico.');
       navigate('/history');
 
     } catch (error: any) {
       console.error('Error creating order:', error);
-      alert('Erro ao processar pedido: ' + error.message);
+      alert('Houve um problema ao processar seu pedido. ' + (error.message || 'Tente novamente.'));
     } finally {
       setLoading(false);
     }
