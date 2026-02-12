@@ -105,8 +105,12 @@ Deno.serve(async (req) => {
         const apiUrl = config.api_url;
         const apiKey = config.api_key;
 
+        // --- DEBUG LOGGING START ---
+        const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'UNDEFINED';
         console.log(`[PlaceOrder] Using API URL: ${apiUrl}`);
-        console.log(`[PlaceOrder] API Key found: ${apiKey ? 'YES (Masked)' : 'NO'}`);
+        console.log(`[PlaceOrder] API Key used: ${maskedKey}`);
+        console.log(`[PlaceOrder] Payload: Service=${service.service_id}, Link=${link}, Qty=${quantity}`);
+        // --- DEBUG LOGGING END ---
 
         const params = new URLSearchParams();
         params.append('key', apiKey);
@@ -114,8 +118,6 @@ Deno.serve(async (req) => {
         params.append('service', service.service_id); // Use DB verified ID
         params.append('link', link);
         params.append('quantity', quantity.toString());
-
-        console.log(`[PlaceOrder] Sending to API: Service=${service.service_id}, Qty=${quantity}, Link=${link}`);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -128,8 +130,8 @@ Deno.serve(async (req) => {
         console.log(`[PlaceOrder] SMM Provider Raw Body: ${rawText}`);
 
         if (!response.ok) {
-            console.error(`Status error from provider: ${response.status} - ${rawText}`);
-            throw new Error(`Provider HTTP Error: ${response.status}`);
+            console.error(`ERROR: Status ${response.status} from provider. Body: ${rawText}`);
+            throw new Error(`Provider HTTP Error: ${response.status} - ${rawText}`);
         }
 
         let apiResult;
