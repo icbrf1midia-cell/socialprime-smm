@@ -39,18 +39,32 @@ Deno.serve(async (req) => {
         // --- Server-Side Logic ---
 
         // 1. Get Admin Config (API Key & URL) & Service Details securely
-        // Using Service Role to access admin_config and profiles
+        // Using Service Role
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        const { data: config } = await supabaseAdmin
-            .from('admin_config')
-            .select('*')
-            .single();
+        // Priority: ENV VARS -> admin_config table
+        const envApiKey = Deno.env.get('PROVIDER_API_KEY');
+        const envApiUrl = Deno.env.get('PROVIDER_API_URL');
 
-        if (!config || !config.api_key || !config.api_url) {
+        let config = { api_key: envApiKey, api_url: envApiUrl };
+
+        // Fallback to DB if missing
+        if (!config.api_key || !config.api_url) {
+            const { data: dbConfig } = await supabaseAdmin
+                .from('admin_config')
+                .select('*')
+                .single();
+
+            if (dbConfig) {
+                if (!config.api_key) config.api_key = dbConfig.api_key;
+                if (!config.api_url) config.api_url = dbConfig.api_url;
+            }
+        }
+
+        if (!config.api_key || !config.api_url) {
             throw new Error('Server misconfiguration: Missing API details');
         }
 
@@ -88,17 +102,20 @@ Deno.serve(async (req) => {
         }
 
         // 4. Call SMM API
-        const apiUrl = config.api_url; // e.g., https://agenciapopular.com/api/v2
+        const apiUrl = config.api_url;
         const apiKey = config.api_key;
+
+        console.log(`[PlaceOrder] Using API URL: ${apiUrl}`);
+        console.log(`[PlaceOrder] API Key found: ${apiKey ? 'YES (Masked)' : 'NO'}`);
 
         const params = new URLSearchParams();
         params.append('key', apiKey);
         params.append('action', 'add');
-        params.append('service', service_id);
+        params.append('service', service.service_id); // Use DB verified ID
         params.append('link', link);
         params.append('quantity', quantity.toString());
 
-        console.log(`Sending order to API: Service ${service_id}, Qty ${quantity}, Cost ${cost}`);
+        console.log(`[PlaceOrder] Sending to API: Service=${service.service_id}, Qty=${quantity}, Link=${link}`);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -106,7 +123,22 @@ Deno.serve(async (req) => {
             body: params
         });
 
-        const apiResult = await response.json();
+        console.log(`[PlaceOrder] SMM Provider Response Status: ${response.status}`);
+        const rawText = await response.text();
+        console.log(`[PlaceOrder] SMM Provider Raw Body: ${rawText}`);
+
+        if (!response.ok) {
+            console.error(`Status error from provider: ${response.status} - ${rawText}`);
+            throw new Error(`Provider HTTP Error: ${response.status}`);
+        }
+
+        let apiResult;
+        try {
+            apiResult = JSON.parse(rawText);
+        } catch (e) {
+            console.error('Failed to parse provider response as JSON', e);
+            throw new Error(`Invalid JSON from provider: ${rawText.substring(0, 100)}...`);
+        }
 
         if (apiResult.error) {
             console.error('SMM API Error:', apiResult.error);
