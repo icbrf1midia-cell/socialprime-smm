@@ -11,6 +11,18 @@ const History: React.FC = () => {
       const fetchOrders = async () => {
          const { data: { user } } = await supabase.auth.getUser();
          if (user) {
+            // 1. Fetch Profile for Total Spent
+            const { data: profile } = await supabase
+               .from('profiles')
+               .select('total_spent')
+               .eq('id', user.id)
+               .single();
+
+            if (profile) {
+               setTotalSpent(profile.total_spent || 0);
+            }
+
+            // 2. Fetch Orders (Assuming service_name and amount exist as columns)
             const { data, error } = await supabase
                .from('orders')
                .select('*')
@@ -19,13 +31,6 @@ const History: React.FC = () => {
 
             if (!error && data) {
                setOrders(data);
-               // Note: Since 'orders' table currently lacks a 'cost' or 'charge' column, 
-               // and 'services' join is complex pending schema finalization, 
-               // we are setting totalSpent to 0 or calculating if data existed.
-               // For now, assuming 0 as per current schema limitations. 
-               // If a 'charge' column is added later, sum it here:
-               // const total = data.reduce((acc, order) => acc + (order.charge || 0), 0);
-               setTotalSpent(0);
             }
          }
          setLoading(false);
@@ -37,6 +42,7 @@ const History: React.FC = () => {
    const filteredOrders = orders.filter(order =>
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.link && order.link.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (order.service_name && order.service_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (order.service_id && order.service_id.toLowerCase().includes(searchTerm.toLowerCase()))
    );
 
@@ -110,21 +116,26 @@ const History: React.FC = () => {
                               <td className="p-4 text-white">
                                  {new Date(order.created_at).toLocaleDateString('pt-BR')}
                               </td>
-                              <td className="p-4 text-white font-medium">{order.service_id}</td>
+                              <td className="p-4 text-white font-medium">
+                                 {order.service_name || `ID: ${order.service_id}`}
+                              </td>
                               <td className="p-4">
                                  <span className="text-[#92adc9] truncate max-w-[150px] block" title={order.link}>{order.link}</span>
                               </td>
                               <td className="p-4 text-right text-white font-mono">{order.quantity}</td>
                               <td className="p-4 text-right text-white font-mono">
-                                 {/* Pending charge column implementation */}
-                                 R$ 0,00
+                                 {order.amount
+                                    ? `R$ ${Number(order.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                    : order.charge
+                                       ? `R$ ${Number(order.charge).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                       : 'R$ 0,00'}
                               </td>
                               <td className="p-4 text-center">
                                  <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold border ${order.status === 'completed'
-                                       ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                       : order.status === 'processing'
-                                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                          : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                    ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                    : order.status === 'processing'
+                                       ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                       : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                     }`}>
                                     {order.status === 'completed' ? 'Concluído' : order.status === 'processing' ? 'Processando' : order.status}
                                  </span>

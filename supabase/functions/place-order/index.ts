@@ -100,21 +100,26 @@ Deno.serve(async (req) => {
             })
         }
 
-        // 7. SUCESSO: Descontar e Salvar
+        // 7. SUCESSO: Descontar, Salvar e Registrar Nome
         await supabaseClient
             .from('profiles')
-            .update({ balance: (profile.balance - cost) })
+            .update({
+                balance: (profile.balance - cost),
+                // Aproveitamos para atualizar o total gasto do usuário no perfil
+                total_spent: (Number(profile.total_spent || 0) + cost)
+            })
             .eq('id', user.id)
 
-        // Ajuste aqui também: removemos category_id se ele existisse no insert
         await supabaseClient
             .from('orders')
             .insert({
                 user_id: user.id,
                 service_id: serviceId,
+                service_name: 'Instagram Visualizações no Reels', // <-- AGORA O NOME FICA SALVO!
                 link: link,
                 quantity: quantity,
                 amount: cost,
+                charge: cost,
                 status: 'pending',
                 external_id: result.order,
                 created_at: new Date().toISOString()
