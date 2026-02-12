@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
         const { service_id, link, quantity } = await req.json();
 
         if (!service_id || !link || !quantity || quantity < 1) {
-            return new Response(JSON.stringify({ error: 'Invalid invalid input' }), {
+            return new Response(JSON.stringify({ error: 'Invalid input' }), {
                 status: 400,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 4. Call SMM API
+        // 4. Call SMM API (STRICT FORMAT)
         const apiUrl = config.api_url;
         const apiKey = config.api_key;
 
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Vital header
             body: params
         });
 
@@ -145,7 +145,13 @@ Deno.serve(async (req) => {
             throw new Error(`Provider Error: ${apiResult.error}`);
         }
 
+        // Capture Order ID
         const providerOrderId = apiResult.order;
+
+        if (!providerOrderId) {
+            console.error('Warning: Provider did not return an order ID', apiResult);
+            // We proceed but log this anomaly
+        }
 
         // 5. Deduct Balance & create Order
         // Transaction-like update: Deduct first
@@ -160,6 +166,7 @@ Deno.serve(async (req) => {
             throw new Error('Failed to update balance');
         }
 
+        // Insert Order Order with correct status and external ID (if column exists, generic status for now)
         const { error: orderError } = await supabaseAdmin
             .from('orders')
             .insert({
@@ -167,10 +174,11 @@ Deno.serve(async (req) => {
                 service_id: service_id,
                 link: link,
                 quantity: quantity,
-                status: 'pending', // or 'processing'
-                // Assuming 'provider_order_id' column exists, if not, might need migration or ignore
-                // For now, let's stick to standard schema
-                // cost: cost // if needed
+                status: 'pending',
+                // We don't have an 'external_id' column in the schema yet, 
+                // so we just log the provider ID for now or we could store it in metadata if available.
+                // If the user wants to save 'providerOrderId', they need to add a column.
+                // custom_data: { provider_order_id: providerOrderId } // Example if JSONB column exists
             });
 
         if (orderError) {
