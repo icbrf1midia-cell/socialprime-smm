@@ -78,13 +78,26 @@ Deno.serve(async (req) => {
 
             console.log(`[Cron] Pedido ${order.id} atualizado para: ${newStatus}`)
 
+
+            // Tradução para mensagem amigável
+            const statusTranslation: Record<string, string> = {
+              'pending': 'Pendente',
+              'processing': 'Processando',
+              'in_progress': 'Em Progresso',
+              'completed': 'Concluído',
+              'partial': 'Parcial',
+              'canceled': 'Cancelado',
+              'refunded': 'Reembolsado'
+            };
+            const translatedStatus = statusTranslation[newStatus] || newStatus;
+
             await supabaseClient
               .from('notifications')
               .insert({
                 user_id: order.user_id,
                 title: 'Pedido Atualizado',
-                message: `O status do pedido #${order.id.slice(0, 8)} mudou para ${newStatus}.`,
-                type: 'info',
+                message: `Seu pedido #${order.id.slice(0, 8)} agora está: ${translatedStatus}.`,
+                type: newStatus === 'completed' ? 'success' : 'info',
                 is_read: false
               })
 
