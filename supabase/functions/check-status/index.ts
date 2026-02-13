@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     // 2. Buscar pedidos que ainda não estão finalizados (pending, processing, in_progress)
     const { data: orders, error: ordersError } = await supabaseClient
       .from('orders')
-      .select('id, external_id, status')
+      .select('id, user_id, external_id, status')
       .in('status', ['pending', 'processing', 'in_progress'])
       .not('external_id', 'is', null)
 
@@ -77,6 +77,18 @@ Deno.serve(async (req) => {
               .eq('id', order.id)
 
             console.log(`[Cron] Pedido ${order.id} atualizado para: ${newStatus}`)
+
+            await supabaseClient
+              .from('notifications')
+              .insert({
+                user_id: order.user_id,
+                title: 'Pedido Atualizado',
+                message: `O status do pedido #${order.id.slice(0, 8)} mudou para ${newStatus}.`,
+                type: 'info',
+                is_read: false
+              })
+
+            console.log(`[Cron] Pedido ${order.id} atualizado para: ${newStatus} e notificação enviada.`)
           }
         }
       } catch (err) {

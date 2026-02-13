@@ -9,22 +9,62 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const [balance, setBalance] = React.useState<number | null>(null);
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<any[]>([]);
+  const [hasUnread, setHasUnread] = React.useState(false);
 
   React.useEffect(() => {
-    // Basic fetch for balance - ideally this would be in a global context
-    const fetchBalance = async () => {
+    const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase
+        // Fetch Balance
+        const { data: profile } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', user.id)
           .single();
-        if (data) setBalance(data.balance);
+        if (profile) setBalance(profile.balance);
+
+        // Fetch Notifications
+        const { data: notifs, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .or(`user_id.eq.${user.id},user_id.is.null`)
+          .order('created_at', { ascending: false })
+          .limit(10); // Limit to recent 10 for header
+
+        if (notifs) {
+          setNotifications(notifs);
+          setHasUnread(notifs.some((n: any) => !n.is_read));
+        }
       }
     };
-    fetchBalance();
+    fetchData();
+
+    // Realtime subscription could be added here later
   }, []);
+
+  const markAsRead = async () => {
+    const unreadIds = notifications.filter(n => !n.is_read && n.user_id).map(n => n.id);
+
+    if (unreadIds.length > 0) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
+
+      // Update local state
+      const updated = notifications.map(n => ({ ...n, is_read: true }));
+      setNotifications(updated);
+      setHasUnread(false);
+    }
+  };
+
+  const handleToggleNotifications = () => {
+    if (!showNotifications && hasUnread) {
+      markAsRead();
+    }
+    setShowNotifications(!showNotifications);
+  }
 
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark z-10 shrink-0">
@@ -76,11 +116,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         {/* Notifications */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={handleToggleNotifications}
             className="relative p-2 text-slate-400 hover:text-slate-500 dark:hover:text-white transition-colors outline-none"
           >
             <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-surface-dark"></span>
+            {hasUnread && (
+              <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-surface-dark"></span>
+            )}
           </button>
 
           {/* Dropdown */}
@@ -88,33 +130,39 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
                 <span className="font-bold text-slate-900 dark:text-white text-sm">Notificações</span>
-                <span className="text-[10px] text-primary font-medium cursor-pointer hover:underline">Marcar como lidas</span>
+                <button
+                  onClick={markAsRead}
+                  className="text-[10px] text-primary font-medium cursor-pointer hover:underline disabled:opacity-50"
+                  disabled={!hasUnread}
+                >
+                  Marcar como lidas
+                </button>
               </div>
               <div className="max-h-[300px] overflow-y-auto">
-                <div className="p-4 hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border-b border-slate-100 dark:border-border-dark/50 last:border-0">
-                  <div className="flex gap-3">
-                    <div className="mt-1 size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-primary text-sm">rocket_launch</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Bem-vindo ao SocialPrime 2.0!</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Conheça nossa nova plataforma com entregas mais rápidas.</p>
-                      <p className="text-[10px] text-slate-400 mt-2">Há 2 horas</p>
-                    </div>
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-sm">
+                    Nenhuma notificação.
                   </div>
-                </div>
-                <div className="p-4 hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer">
-                  <div className="flex gap-3">
-                    <div className="mt-1 size-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-purple-500 text-sm">music_note</span>
+                ) : (
+                  notifications.map((notif) => (
+                    <div key={notif.id} className={`p-4 hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border-b border-slate-100 dark:border-border-dark/50 last:border-0 ${!notif.is_read ? 'bg-primary/5' : ''}`}>
+                      <div className="flex gap-3">
+                        <div className={`mt-1 size-8 rounded-full flex items-center justify-center shrink-0 ${notif.type === 'warning' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+                          <span className={`material-symbols-outlined text-sm ${notif.type === 'warning' ? 'text-amber-500' : 'text-primary'}`}>
+                            {notif.type === 'warning' ? 'warning' : 'notifications'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className={`text-sm font-medium ${!notif.is_read ? 'text-primary' : 'text-slate-900 dark:text-white'}`}>{notif.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{notif.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-2">
+                            {new Date(notif.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Novos serviços de TikTok</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Adicionamos curtidas brasileiras reais para seus vídeos.</p>
-                      <p className="text-[10px] text-slate-400 mt-2">Ontem</p>
-                    </div>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
           )}
