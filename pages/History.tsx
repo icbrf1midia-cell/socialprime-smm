@@ -30,7 +30,13 @@ const History: React.FC = () => {
                .order('created_at', { ascending: false });
 
             if (!error && data) {
+
                setOrders(data);
+               // Calculate total spent from the fetched orders
+               const calculatedTotal = data.reduce((acc: number, order: any) => {
+                  return acc + (Number(order.amount) || Number(order.charge) || 0);
+               }, 0);
+               setTotalSpent(calculatedTotal);
             }
          }
          setLoading(false);

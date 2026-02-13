@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
         // Buscamos apenas 'rate', 'min' e 'max' que sabemos que existem
         const { data: serviceData, error: serviceError } = await supabaseClient
             .from('services')
-            .select('rate, min, max')
+            .select('rate, min, max, name')
             .eq('service_id', serviceId)
             .maybeSingle()
 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
         if (!localService) {
             const { data: serviceDataBackup } = await supabaseClient
                 .from('services')
-                .select('rate, min, max')
+                .select('rate, min, max, name')
                 .eq('id', serviceId) // Cuidado: se sua tabela não tem ID, isso pode falhar, mas o anterior deve resolver
                 .maybeSingle()
             localService = serviceDataBackup
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
             .insert({
                 user_id: user.id,
                 service_id: serviceId,
-                service_name: 'Instagram Visualizações no Reels', // <-- AGORA O NOME FICA SALVO!
+                service_name: localService.name || 'Serviço Personalizado',
                 link: link,
                 quantity: quantity,
                 amount: cost,
