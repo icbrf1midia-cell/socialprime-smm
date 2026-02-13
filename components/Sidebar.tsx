@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const [profile, setProfile] = React.useState<{ full_name: string; balance: number; avatar_url?: string } | null>(null);
+  const [profile, setProfile] = React.useState<{ full_name: string; balance: number; avatar_url?: string; role?: string } | null>(null);
   const [userEmail, setUserEmail] = React.useState<string | null>(null);
   const ADMIN_EMAIL = 'brunomeueditor@gmail.com';
 
@@ -29,14 +29,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     fetchProfile();
   }, []);
 
+  const isAdmin = userEmail === ADMIN_EMAIL || profile?.role === 'admin';
+
   const navItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
-    { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
-    { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
-    { name: 'Histórico', icon: 'list_alt', path: '/history' },
+    // Show these ONLY if NOT admin
+    ...(!isAdmin ? [
+      { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
+      { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
+      { name: 'Histórico', icon: 'list_alt', path: '/history' },
+    ] : []),
     { name: 'Minha Conta', icon: 'person', path: '/account' },
-    // Only show Config API for admin
-    ...(userEmail === ADMIN_EMAIL ? [{ name: 'Config API', icon: 'api', path: '/api' }] : []),
+    // Only show Config API for admin (moved to Admin Panel mostly, but keeping link if explicit access needed, currently Config is internal to Admin page so maybe remove?) 
+    // User requested "Configurações de Admin: Remova... ou mova". The Config is now in Admin Modal. 
+    // Let's keep "Painel Admin" as the main entry.
   ];
 
   return (
@@ -91,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </NavLink>
           ))}
 
-          {userEmail === ADMIN_EMAIL && (
+          {isAdmin && (
             <>
               <p className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 mt-6">Administração</p>
               <NavLink
