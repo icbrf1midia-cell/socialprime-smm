@@ -3,7 +3,9 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 const Admin: React.FC = () => {
+    // Navigate not used for config anymore, but kept if needed for other links
     const navigate = useNavigate();
+
     const [users, setUsers] = useState<any[]>([]);
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -11,14 +13,22 @@ const Admin: React.FC = () => {
         totalProfit: 0.0,
         newRegs: 0
     });
-    const [offsets, setOffsets] = useState({
-        users: 0,
-        orders: 0,
-        profit: 0
+
+    // Config State
+    const [config, setConfig] = useState({
+        api_url: '',
+        api_key: '',
+        margin_percent: 100,
+        fake_users_offset: 0,
+        fake_orders_offset: 0,
+        fake_profit_offset: 0
     });
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // Modal States
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [savingConfig, setSavingConfig] = useState(false);
+
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [editBalance, setEditBalance] = useState('');
     const [editStatus, setEditStatus] = useState('');
@@ -29,67 +39,59 @@ const Admin: React.FC = () => {
     }, []);
 
     const fetchData = async () => {
-        // 1. Fetch Admin Config for Offsets
-        const { data: config } = await supabase.from('admin_config').select('*').single();
-        if (config) {
-            setOffsets({
-                users: config.offset_users || 0,
-                orders: config.offset_orders || 0,
-                profit: Number(config.offset_profit) || 0
+        try {
+            // 1. Fetch Admin Config
+            const { data: adminConfig, error: configError } = await supabase.from('admin_config').select('*').single();
+            if (adminConfig && !configError) {
+                setConfig({
+                    api_url: adminConfig.api_url || '',
+                    api_key: adminConfig.api_key || '',
+                    margin_percent: adminConfig.margin_percent || 100,
+                    fake_users_offset: adminConfig.fake_users_offset || 0,
+                    fake_orders_offset: adminConfig.fake_orders_offset || 0,
+                    fake_profit_offset: Number(adminConfig.fake_profit_offset) || 0
+                });
+            }
+
+            // 2. Fetch Users
+            // Note: RLS policies might restrict this to admin only. 
+            // Ensure you are logged in as 'brunomeueditor@gmail.com' to see all users.
+            const { data: profiles, error: usersError } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (profiles && !usersError) {
+                setUsers(profiles);
+            }
+
+            // 3. Stats Calculation (Real)
+            const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+            const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+
+            const { data: revenueData } = await supabase
+                .from('orders')
+                .select('amount, charge')
+                .eq('status', 'completed');
+
+            const realRevenue = revenueData?.reduce((acc, order) => acc + (Number(order.amount) || Number(order.charge) || 0), 0) || 0;
+
+            setStats({
+                totalUsers: (usersCount || 0),
+                totalOrders: (ordersCount || 0),
+                totalProfit: realRevenue,
+                newRegs: 0
             });
+        } catch (error) {
+            console.error("Error fetching admin data:", error);
         }
-
-        // 2. Fetch Users
-        const { data: profiles, error: usersError } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (profiles && !usersError) {
-            setUsers(profiles);
-        }
-
-        // 3. Stats Calculation (Real + Offset)
-        const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-        const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-
-        // Calculate Profit (Sum of finished orders charge - cost? OR just revenue for now if cost isn't tracked easily per order yet)
-        // For simplicity/MVP, let's assume 'amount' is revenue. 
-        // If we want PROFIT we'd need (amount - cost). Let's assume 20% margin estimate if cost isn't strict, OR just sum 'amount' as Revenue.
-        // The user asked for "Lucro". Let's use Sum of (amount - cost) if we have cost, otherwise just amount.
-        // Checking schema... we put 'charge' and 'amount' in orders.
-        // Let's summing 'amount' from orders where status = 'completed'.
-        const { data: revenueData } = await supabase
-            .from('orders')
-            .select('amount, charge') // amount is usually what user paid
-            .eq('status', 'completed');
-
-        const realRevenue = revenueData?.reduce((acc, order) => acc + (Number(order.amount) || Number(order.charge) || 0), 0) || 0;
-        // Estimating 20% profit margin if we don't have exact cost stored, 
-        // OR if the user implies "Sales" is Profit. Usually Profit is a fraction. 
-        // Let's display Revenue as 'Lucro' implies net, but usually dashboard shows Revenue. 
-        // Let's stick to the prompt: Lucro. Let's assume 100% markup (50% profit) for now or just display the calculated number + offset.
-        // Better: Display Total Transacted + Offset. Or if strictly "Lucro", maybe 30% of that.
-        // Let's just use the Total Amount for now as the 'base' number to add offset to.
-
-        setStats({
-            totalUsers: (usersCount || 0),
-            totalOrders: (ordersCount || 0),
-            totalProfit: realRevenue,
-            newRegs: 0 // Placeholder or logic for 'new today'
-        });
     };
 
     const handleEditUser = (user: any) => {
         setSelectedUser(user);
         setEditBalance(user.balance?.toString() || '0');
-        // Assume status logic via 'metadata' or specific column if it existed. 
-        // Current profiles schema might not have 'status'. Let's check. 
-        // If no status column, we can use a boolean or just skip for now. 
-        // The existing mocked table showed 'Status'.
-        // If profiles table doesn't have status, we'll just edit Balance.
-        setEditStatus('active'); // Default
-        setIsModalOpen(true);
+        setEditStatus(user.status || 'active');
+        setIsUserModalOpen(true);
     };
 
     const saveUserChanges = async () => {
@@ -99,22 +101,44 @@ const Admin: React.FC = () => {
             const { error } = await supabase
                 .from('profiles')
                 .update({
-                    balance: parseFloat(editBalance)
-                    // status: editStatus // User asked for status, but schema needs to support it. 
-                    // We will implement Balance update which is critical.
+                    balance: parseFloat(editBalance),
+                    status: editStatus
                 })
                 .eq('id', selectedUser.id);
 
             if (error) throw error;
 
             // Update local state
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, balance: parseFloat(editBalance) } : u));
-            setIsModalOpen(false);
+            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, balance: parseFloat(editBalance), status: editStatus } : u));
+            setIsUserModalOpen(false);
         } catch (err) {
             console.error("Error updating user:", err);
             alert("Erro ao atualizar usuário.");
         } finally {
             setSavingUser(false);
+        }
+    };
+
+    const saveConfig = async () => {
+        setSavingConfig(true);
+        try {
+            const { error } = await supabase
+                .from('admin_config')
+                .upsert({
+                    id: 1,
+                    ...config,
+                    updated_at: new Date()
+                }, { onConflict: 'id' });
+
+            if (error) throw error;
+            setIsSettingsModalOpen(false);
+            // Re-fetch to update UI immediately
+            fetchData();
+        } catch (err) {
+            console.error("Error saving config:", err);
+            alert("Erro ao salvar configurações.");
+        } finally {
+            setSavingConfig(false);
         }
     };
 
@@ -130,7 +154,7 @@ const Admin: React.FC = () => {
                 </div>
                 <div className="flex gap-3">
                     <button
-                        onClick={() => navigate('/admin/config')}
+                        onClick={() => setIsSettingsModalOpen(true)}
                         className="h-10 px-4 rounded-lg bg-card-dark border border-border-dark hover:bg-white/5 text-white text-sm font-bold flex items-center gap-2 transition-colors">
                         <span className="material-symbols-outlined text-[18px]">settings</span>
                         Configurações
@@ -147,7 +171,7 @@ const Admin: React.FC = () => {
                     </div>
                     <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Lucro Real (Líquido)</p>
                     <h3 className="text-4xl font-black text-white mt-2">
-                        R$ {(stats.totalProfit + offsets.profit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(stats.totalProfit + config.fake_profit_offset).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </h3>
                     <div className="flex items-center gap-2 mt-4 text-sm">
                         <span className="text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">+18%</span>
@@ -161,7 +185,7 @@ const Admin: React.FC = () => {
                         <div>
                             <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Total Usuários</p>
                             <h3 className="text-3xl font-bold text-white mt-2">
-                                {(stats.totalUsers + offsets.users).toLocaleString('pt-BR')}
+                                {(stats.totalUsers + config.fake_users_offset).toLocaleString('pt-BR')}
                             </h3>
                         </div>
                         <div className="p-2 bg-primary/20 rounded-lg text-primary">
@@ -177,7 +201,7 @@ const Admin: React.FC = () => {
                         <div>
                             <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Total Pedidos</p>
                             <h3 className="text-3xl font-bold text-white mt-2">
-                                {(stats.totalOrders + offsets.orders).toLocaleString('pt-BR')}
+                                {(stats.totalOrders + config.fake_orders_offset).toLocaleString('pt-BR')}
                             </h3>
                         </div>
                         <div className="p-2 bg-purple-500/20 rounded-lg text-purple-500">
@@ -220,8 +244,15 @@ const Admin: React.FC = () => {
                                     <td className="px-6 py-4 font-mono">
                                         R$ {user.total_spent?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
                                     </td>
-                                    <td className="px-6 py-4 text-text-secondary text-xs">
-                                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${user.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                                user.status === 'banned' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                            }`}>
+                                            {user.status === 'active' ? 'Ativo' :
+                                                user.status === 'banned' ? 'Banido' :
+                                                    user.status === 'suspended' ? 'Suspenso' : user.status || 'Desconhecido'}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
@@ -237,7 +268,7 @@ const Admin: React.FC = () => {
                             {users.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-8 text-center text-text-secondary">
-                                        Nenhum usuário encontrado.
+                                        Nenhum usuário encontrado (ou sem permissão).
                                     </td>
                                 </tr>
                             )}
@@ -247,12 +278,12 @@ const Admin: React.FC = () => {
             </div>
 
             {/* Edit User Modal */}
-            {isModalOpen && selectedUser && (
+            {isUserModalOpen && selectedUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-card-dark border border-border-dark rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b border-border-dark flex justify-between items-center bg-white/5">
                             <h3 className="text-lg font-bold text-white">Editar Usuário</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-text-secondary hover:text-white">
+                            <button onClick={() => setIsUserModalOpen(false)} className="text-text-secondary hover:text-white">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
@@ -271,11 +302,23 @@ const Admin: React.FC = () => {
                                     onChange={(e) => setEditBalance(e.target.value)}
                                 />
                             </div>
-                            {/* Status could be added here if schema supported it */}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[#92adc9]">Status</label>
+                                <select
+                                    className="w-full px-4 py-3 rounded-lg bg-[#0f172a] border border-border-dark focus:border-primary focus:ring-1 focus:ring-primary text-white outline-none appearance-none"
+                                    value={editStatus}
+                                    onChange={(e) => setEditStatus(e.target.value)}
+                                >
+                                    <option value="active">Ativo</option>
+                                    <option value="suspended">Suspenso</option>
+                                    <option value="banned">Banido</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="px-6 py-4 border-t border-border-dark flex justify-end gap-3 bg-white/5">
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={() => setIsUserModalOpen(false)}
                                 className="px-4 py-2 rounded-lg text-text-secondary hover:text-white font-medium text-sm transition-colors"
                             >
                                 Cancelar
@@ -291,6 +334,110 @@ const Admin: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Settings Modal */}
+            {isSettingsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="bg-card-dark border border-border-dark rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-border-dark flex justify-between items-center bg-white/5">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">settings</span>
+                                Configurações do Sistema
+                            </h3>
+                            <button onClick={() => setIsSettingsModalOpen(false)} className="text-text-secondary hover:text-white">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {/* API Connection */}
+                            <div className="space-y-4">
+                                <h4 className="text-white font-bold text-sm border-b border-white/10 pb-2">Conexão API (SMM)</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">API URL</label>
+                                        <input
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-primary text-white text-sm"
+                                            value={config.api_url}
+                                            onChange={(e) => setConfig({ ...config, api_url: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">API Key</label>
+                                        <input
+                                            type="password"
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-primary text-white text-sm"
+                                            value={config.api_key}
+                                            onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">Margem de Lucro (%)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-primary text-white text-sm"
+                                            value={config.margin_percent}
+                                            onChange={(e) => setConfig({ ...config, margin_percent: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Marketing Offsets */}
+                            <div className="space-y-4">
+                                <h4 className="text-white font-bold text-sm border-b border-white/10 pb-2 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-purple-500 text-sm">trending_up</span>
+                                    Marketing & Offsets
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">Fake Users Offset (+)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 text-white text-sm"
+                                            value={config.fake_users_offset}
+                                            onChange={(e) => setConfig({ ...config, fake_users_offset: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">Fake Orders Offset (+)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 text-white text-sm"
+                                            value={config.fake_orders_offset}
+                                            onChange={(e) => setConfig({ ...config, fake_orders_offset: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-[#92adc9]">Fake Profit Offset (R$ +)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full px-4 py-2 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 text-white text-sm"
+                                            value={config.fake_profit_offset}
+                                            onChange={(e) => setConfig({ ...config, fake_profit_offset: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-border-dark flex justify-end gap-3 bg-white/5">
+                            <button
+                                onClick={() => setIsSettingsModalOpen(false)}
+                                className="px-4 py-2 rounded-lg text-text-secondary hover:text-white font-medium text-sm transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={saveConfig}
+                                disabled={savingConfig}
+                                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                            >
+                                {savingConfig ? 'Salvando...' : 'Salvar Configurações'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
