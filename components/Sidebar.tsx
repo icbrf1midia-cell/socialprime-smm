@@ -33,10 +33,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
-    { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
-    { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
-    { name: 'Histórico', icon: 'list_alt', path: '/history' },
+    // Admin: Hide Operational Links
+    ...(!isAdmin ? [
+      { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
+      { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
+      { name: 'Histórico', icon: 'list_alt', path: '/history' },
+    ] : []),
     { name: 'Minha Conta', icon: 'person', path: '/account' },
+    // Admin: Show Management Links
+    ...(isAdmin ? [
+      { name: 'Painel Admin', icon: 'admin_panel_settings', path: '/admin' },
+      // API Config is inside Admin Panel usually, but keeping checking if user wants explicit link?
+      // User said: "Mantenha apenas: Dashboard, Painel Admin (Gestão de Usuários), Configurações API e Minha Conta."
+      // So I will add Config API link explicitly.
+      { name: 'Config API', icon: 'api', path: '/api' },
+    ] : [])
   ];
 
   return (
@@ -90,25 +101,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               )}
             </NavLink>
           ))}
-
-          {isAdmin && (
-            <>
-              <p className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 mt-6">Administração</p>
-              <NavLink
-                to="/admin"
-                onClick={() => { if (window.innerWidth < 1024) onClose(); }}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${isActive
-                    ? 'bg-primary text-white font-medium shadow-md shadow-primary/20'
-                    : 'text-slate-600 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-                  }`
-                }
-              >
-                <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
-                <span className="text-sm font-medium">Painel Admin</span>
-              </NavLink>
-            </>
-          )}
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#0f1520]">
