@@ -5,6 +5,9 @@ const ApiConfig: React.FC = () => {
   const [apiUrl, setApiUrl] = useState('https://agenciapopular.com/api/v2');
   const [apiKey, setApiKey] = useState(import.meta.env.VITE_PROVIDER_API_KEY || '');
   const [margin, setMargin] = useState(100);
+  const [offsetUsers, setOffsetUsers] = useState(0);
+  const [offsetOrders, setOffsetOrders] = useState(0);
+  const [offsetProfit, setOffsetProfit] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showMargin, setShowMargin] = useState(false);
@@ -21,8 +24,11 @@ const ApiConfig: React.FC = () => {
 
       if (data && !error) {
         if (data.api_url) setApiUrl(data.api_url);
-        if (data.api_key) setApiKey(data.api_key); // BE CAREFUL: Ideally backend shouldn't return this if sensitive, but for this app it seems standard
+        if (data.api_key) setApiKey(data.api_key); // BE CAREFUL
         if (data.margin_percent) setMargin(data.margin_percent);
+        if (data.offset_users) setOffsetUsers(data.offset_users);
+        if (data.offset_orders) setOffsetOrders(data.offset_orders);
+        if (data.offset_profit) setOffsetProfit(data.offset_profit);
       }
     };
     fetchConfig();
@@ -40,6 +46,9 @@ const ApiConfig: React.FC = () => {
           api_url: apiUrl,
           api_key: apiKey,
           margin_percent: margin,
+          offset_users: offsetUsers,
+          offset_orders: offsetOrders,
+          offset_profit: offsetProfit,
           updated_at: new Date()
         }, { onConflict: 'id' });
 
@@ -217,6 +226,51 @@ const ApiConfig: React.FC = () => {
                 <span className="material-symbols-outlined text-[20px]">{showApiKey ? 'visibility_off' : 'visibility'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Marketing / Offsets Card */}
+      <section className="bg-card-dark rounded-xl border border-border-dark shadow-sm overflow-hidden">
+        <div className="border-b border-border-dark px-6 py-4 flex justify-between items-center bg-white/5">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-purple-500">trending_up</span>
+            Marketing & Offsets
+          </h2>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Offset Users */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#92adc9] uppercase tracking-wide">Offset Usuários (+)</label>
+            <input
+              className="w-full px-4 py-3 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-white placeholder-slate-500 outline-none transition-all"
+              type="number"
+              value={offsetUsers}
+              onChange={(e) => setOffsetUsers(Number(e.target.value))}
+            />
+            <p className="text-xs text-slate-500">Adiciona ao total real de usuários.</p>
+          </div>
+          {/* Offset Orders */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#92adc9] uppercase tracking-wide">Offset Pedidos (+)</label>
+            <input
+              className="w-full px-4 py-3 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-white placeholder-slate-500 outline-none transition-all"
+              type="number"
+              value={offsetOrders}
+              onChange={(e) => setOffsetOrders(Number(e.target.value))}
+            />
+            <p className="text-xs text-slate-500">Adiciona ao total real de pedidos.</p>
+          </div>
+          {/* Offset Profit */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-[#92adc9] uppercase tracking-wide">Offset Lucro (R$ +)</label>
+            <input
+              className="w-full px-4 py-3 rounded-lg bg-[#0f172a] border border-border-dark focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-white placeholder-slate-500 outline-none transition-all"
+              type="number"
+              value={offsetProfit}
+              onChange={(e) => setOffsetProfit(Number(e.target.value))}
+            />
+            <p className="text-xs text-slate-500">Adiciona ao lucro real calculado.</p>
           </div>
         </div>
       </section>
