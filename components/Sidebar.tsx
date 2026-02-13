@@ -33,16 +33,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
-    // Show these ONLY if NOT admin
-    ...(!isAdmin ? [
-      { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
-      { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
-      { name: 'Histórico', icon: 'list_alt', path: '/history' },
-    ] : []),
+    { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
+    { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
+    { name: 'Histórico', icon: 'list_alt', path: '/history' },
     { name: 'Minha Conta', icon: 'person', path: '/account' },
-    // Only show Config API for admin (moved to Admin Panel mostly, but keeping link if explicit access needed, currently Config is internal to Admin page so maybe remove?) 
-    // User requested "Configurações de Admin: Remova... ou mova". The Config is now in Admin Modal. 
-    // Let's keep "Painel Admin" as the main entry.
   ];
 
   return (
