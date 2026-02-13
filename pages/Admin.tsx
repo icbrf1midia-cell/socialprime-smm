@@ -205,7 +205,7 @@ const Admin: React.FC = () => {
                                 <th className="px-6 py-4">Email / Info</th>
                                 <th className="px-6 py-4">Saldo</th>
                                 <th className="px-6 py-4">Gasto Total</th>
-                                <th className="px-6 py-4">Criado em</th>
+                                <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Ações</th>
                             </tr>
                         </thead>
