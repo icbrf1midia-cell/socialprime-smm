@@ -192,7 +192,7 @@ const Admin: React.FC = () => {
                             <span className="material-symbols-outlined">group</span>
                         </div>
                     </div>
-                    <p className="text-sm text-text-secondary mt-4">Calculado com base no real + offset.</p>
+                    <p className="text-sm text-text-secondary mt-4">Total calculado com base no banco de dados.</p>
                 </div>
 
                 {/* Total Orders */}
@@ -246,8 +246,8 @@ const Admin: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold border ${user.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                                user.status === 'banned' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                            user.status === 'banned' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                                             }`}>
                                             {user.status === 'active' ? 'Ativo' :
                                                 user.status === 'banned' ? 'Banido' :
