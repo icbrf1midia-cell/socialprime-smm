@@ -30,13 +30,10 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen h-auto w-full flex-col lg:flex-row bg-background-dark overflow-y-scroll pb-20 lg:pb-0">
-
-
-
-      {/* Left Side (Hero) */}
-      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-center py-4 lg:py-12 px-5 lg:px-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[25vh] lg:min-h-auto order-1 lg:order-none">
-        <div className="absolute inset-0 z-0 opacity-40 animate-float">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-dark overflow-x-hidden">
+      {/* Left Side (Desktop Only) */}
+      <div className="hidden lg:flex w-full lg:w-1/2 bg-slate-900 items-center justify-center p-12 relative overflow-hidden h-screen sticky top-0">
+        <div className="absolute inset-0 z-0 opacity-40">
           <img
             alt="Abstract network"
             className="w-full h-full object-cover"
@@ -44,23 +41,21 @@ const Login: React.FC = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-transparent"></div>
         </div>
-
-        <div className="relative z-10 max-w-lg mb-0 lg:mb-8">
-
-
-          <h1 className="text-2xl lg:text-5xl font-bold tracking-tight text-white mb-2 lg:mb-6 leading-tight lg:leading-[1.1] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="relative z-10 max-w-lg">
+          <h1 className="text-5xl font-bold tracking-tight text-white mb-6 leading-tight">
             A Autoridade Digital que Você Merece.
           </h1>
-
-          <p className="text-slate-400 text-sm lg:text-lg leading-tight lg:leading-relaxed animate-fade-in-up line-clamp-3 lg:line-clamp-none mb-2" style={{ animationDelay: '200ms' }}>
+          <p className="text-slate-400 text-lg leading-relaxed">
             Desbloqueie o potencial máximo do seu perfil. A plataforma líder no Brasil para quem busca crescimento acelerado, resultados reais e domínio nas redes sociais.
           </p>
         </div>
       </div>
 
       {/* Right Side (Form) */}
-      <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none pb-20">
-        <div className="w-full max-w-[420px] space-y-2">
+      <div className="flex w-full lg:w-1/2 min-h-screen flex-col items-center justify-center p-8 pt-10 pb-24 bg-background-light dark:bg-background-dark">
+
+
+        <div className="w-full max-w-md space-y-8 bg-background-light dark:bg-background-dark p-8 rounded-2xl shadow-xl border border-border-dark">
           <div className="text-center sm:text-left">
             <img src="/logo.png" alt="SocialPrime" className="h-32 lg:h-40 w-auto mx-auto mb-2 sm:mx-0" />
             <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Bem-vindo de volta</h2>

@@ -10,8 +10,27 @@
     font-weight: 400;
 }
 
+
+
+
+html,
 body {
+    min-height: 100%;
+    /* Permite crescer - Crucial */
+    width: 100%;
+    /* Largura base */
+    overflow-x: hidden;
+    /* BLOQUEIA scroll horizontal */
+    overflow-y: auto;
+    /* LIBERA scroll vertical nativo */
+    -webkit-overflow-scrolling: touch;
+    /* Suavidade no iOS */
     margin: 0;
-    min-width: 320px;
+}
+
+#root {
     min-height: 100vh;
+    /* Garante que o app ocupe pelo menos a tela toda */
+    display: flex;
+    flex-direction: column;
 }

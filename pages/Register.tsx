@@ -61,13 +61,17 @@ const Register: React.FC = () => {
    };
 
    return (
-      <div className="flex min-h-screen h-auto w-full bg-background-dark overflow-y-scroll pb-20 lg:pb-0">
-         {/* Left Side */}
-         <div className="relative hidden lg:flex w-1/2 h-full flex-col justify-between p-12 bg-surface-dark overflow-hidden">
-            <div className="absolute inset-0 z-0 h-full w-full bg-cover bg-center opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1639322537504-6427a16b0a28?auto=format&fit=crop&q=80&w=2832&ixlib=rb-4.0.3')` }}></div>
+      <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-dark overflow-x-hidden">
+         {/* Left Side (Desktop Only) */}
+         <div className="hidden lg:flex w-full lg:w-1/2 bg-slate-900 items-center justify-center p-12 relative overflow-hidden h-screen sticky top-0">
+            <div className="absolute inset-0 z-0 opacity-60 mix-blend-overlay">
+               <img
+                  src="https://images.unsplash.com/photo-1639322537504-6427a16b0a28?auto=format&fit=crop&q=80&w=2832&ixlib=rb-4.0.3"
+                  alt="Background"
+                  className="w-full h-full object-cover"
+               />
+            </div>
             <div className="absolute inset-0 z-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90"></div>
-
-
 
             <div className="relative z-10 max-w-lg">
                <h2 className="text-4xl font-bold leading-tight tracking-tight text-white mb-4">Domine com a SocialPrime.</h2>
@@ -78,9 +82,9 @@ const Register: React.FC = () => {
             </div>
          </div>
 
-         {/* Right Side */}
-         <div className="flex w-full lg:w-1/2 min-h-screen h-auto lg:h-full flex-col bg-background-light dark:bg-background-dark justify-center">
-            <div className="w-full max-w-[520px] px-6 py-4 lg:px-10 mx-auto">
+         {/* Right Side (Form) */}
+         <div className="flex w-full lg:w-1/2 min-h-screen flex-col items-center justify-center p-8 pt-10 pb-24 bg-background-light dark:bg-background-dark">
+            <div className="w-full max-w-md space-y-8 bg-background-light dark:bg-background-dark p-8 rounded-2xl shadow-xl border border-border-dark">
                <div className="mb-2">
                   <img src="/logo.png" alt="SocialPrime" className="h-32 lg:h-40 w-auto mx-auto mb-2 lg:mx-0" />
                   <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-2">Crie sua conta</h1>
