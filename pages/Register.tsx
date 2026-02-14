@@ -61,7 +61,7 @@ const Register: React.FC = () => {
    };
 
    return (
-      <div className="flex h-screen w-full bg-background-dark">
+      <div className="flex min-h-screen w-full bg-background-dark">
          {/* Left Side */}
          <div className="relative hidden lg:flex w-1/2 h-full flex-col justify-between p-12 bg-surface-dark overflow-hidden">
             <div className="absolute inset-0 z-0 h-full w-full bg-cover bg-center opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1639322537504-6427a16b0a28?auto=format&fit=crop&q=80&w=2832&ixlib=rb-4.0.3')` }}></div>
@@ -79,8 +79,8 @@ const Register: React.FC = () => {
          </div>
 
          {/* Right Side */}
-         <div className="flex w-full lg:w-1/2 h-full flex-col bg-background-light dark:bg-background-dark overflow-y-auto">
-            <div className="m-auto w-full max-w-[520px] px-6 py-12 lg:px-10">
+         <div className="flex w-full lg:w-1/2 min-h-screen lg:h-full flex-col bg-background-light dark:bg-background-dark overflow-y-auto justify-center pb-20">
+            <div className="w-full max-w-[520px] px-6 py-12 lg:px-10 mx-auto">
                <div className="mb-8">
                   <img src="/logo.png" alt="SocialPrime" className="h-40 w-auto mx-auto mb-6 lg:mx-0" />
                   <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crie sua conta</h1>

@@ -59,7 +59,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Right Side (Form) */}
-      <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none">
+      <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none pb-20">
         <div className="w-full max-w-[420px] space-y-4">
           <div className="text-center sm:text-left">
             <img src="/logo.png" alt="SocialPrime" className="h-40 w-auto mx-auto mb-6 sm:mx-0" />
