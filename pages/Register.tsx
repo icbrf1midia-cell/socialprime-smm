@@ -80,10 +80,10 @@ const Register: React.FC = () => {
 
          {/* Right Side */}
          <div className="flex w-full lg:w-1/2 min-h-screen lg:h-full flex-col bg-background-light dark:bg-background-dark justify-center">
-            <div className="w-full max-w-[520px] px-6 py-12 lg:px-10 mx-auto">
-               <div className="mb-8">
-                  <img src="/logo.png" alt="SocialPrime" className="h-40 w-auto mx-auto mb-6 lg:mx-0" />
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crie sua conta</h1>
+            <div className="w-full max-w-[520px] px-6 py-6 lg:px-10 mx-auto">
+               <div className="mb-4">
+                  <img src="/logo.png" alt="SocialPrime" className="h-32 lg:h-40 w-auto mx-auto mb-4 lg:mx-0" />
+                  <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-2">Crie sua conta</h1>
                   <p className="text-slate-500 dark:text-text-secondary">Junte-se à plataforma premium de SMM.</p>
                </div>
 
