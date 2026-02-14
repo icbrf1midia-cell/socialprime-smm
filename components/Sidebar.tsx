@@ -17,12 +17,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         fetchProfile();
+        fetchUnreadCount();
 
         // Listen for updates from Account page or elsewhere
-        const handleUserUpdate = () => fetchProfile();
+        const handleUserUpdate = () => {
+            fetchProfile();
+            fetchUnreadCount();
+        };
         window.addEventListener('userUpdated', handleUserUpdate);
 
         return () => window.removeEventListener('userUpdated', handleUserUpdate);
@@ -53,6 +58,37 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         }
     };
 
+    const fetchUnreadCount = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+
+            let totalUnread = count || 0;
+
+            // Check for unread global notification
+            const { data: globalNotif } = await supabase
+                .from('notifications')
+                .select('id')
+                .is('user_id', null)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (globalNotif) {
+                const lastSeenGlobal = localStorage.getItem('last_seen_global_id');
+                if (globalNotif.id !== lastSeenGlobal) {
+                    totalUnread += 1;
+                }
+            }
+
+            setUnreadCount(totalUnread);
+        }
+    };
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
@@ -60,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
     const isActive = (path: string) => location.pathname === path;
 
-    const NavItem = ({ to, icon, label }: { to: string; icon: string; label: string }) => (
+    const NavItem = ({ to, icon, label, badge }: { to: string; icon: string; label: string, badge?: number }) => (
         <Link
             to={to}
             onClick={onClose}
@@ -70,7 +106,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 }`}
         >
             <span className="material-symbols-outlined">{icon}</span>
-            <span className="font-medium">{label}</span>
+            <span className="font-medium flex-1">{label}</span>
+            {badge && badge > 0 ? (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {badge > 99 ? '99+' : badge}
+                </span>
+            ) : null}
         </Link>
     );
 
@@ -104,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
                     <NavItem to="/history" icon="history" label="Histórico" />
                     <NavItem to="/account" icon="person" label="Minha Conta" />
-                    <NavItem to="/notifications" icon="notifications" label="Notificações" />
+                    <NavItem to="/notifications" icon="notifications" label="Notificações" badge={unreadCount} />
                 </nav>
 
                 {/* User & Logout Area */}

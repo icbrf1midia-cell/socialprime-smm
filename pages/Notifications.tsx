@@ -17,6 +17,7 @@ const Notifications: React.FC = () => {
 
     useEffect(() => {
         fetchNotifications();
+        markAllAsRead();
     }, []);
 
     const fetchNotifications = async () => {
@@ -35,6 +36,35 @@ const Notifications: React.FC = () => {
             console.error('Error fetching notifications:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const markAllAsRead = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+
+            // Dispatch event to update sidebar count
+            window.dispatchEvent(new Event('userUpdated'));
+        }
+
+        // Mark global notifications as read
+        const { data: globalNotif } = await supabase
+            .from('notifications')
+            .select('id')
+            .is('user_id', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (globalNotif) {
+            localStorage.setItem('last_seen_global_id', globalNotif.id);
+            // Dispatch event again for global update
+            window.dispatchEvent(new Event('userUpdated'));
         }
     };
 
@@ -96,7 +126,7 @@ const Notifications: React.FC = () => {
                     </div>
                 ) : (
                     notifications.map((notification) => (
-                        <div key={notification.id} className="bg-card-dark p-4 rounded-xl border border-border-dark flex gap-4 items-start hover:border-primary/30 transition-colors">
+                        <div key={notification.id} className={`bg-card-dark p-4 rounded-xl border flex gap-4 items-start transition-colors ${!notification.is_read ? 'border-primary/50 bg-primary/5' : 'border-border-dark hover:border-primary/30'}`}>
                             <div className={`p-3 rounded-full ${getIconColor(notification.type)}`}>
                                 <span className="material-symbols-outlined">{getIcon(notification.type)}</span>
                             </div>
