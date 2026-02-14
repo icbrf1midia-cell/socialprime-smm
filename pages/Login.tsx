@@ -32,7 +32,7 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-dark overflow-x-hidden">
       {/* Left Side (Desktop Only) */}
-      <div className="hidden lg:flex w-full lg:w-1/2 bg-slate-900 items-center justify-center p-12 relative overflow-hidden h-screen sticky top-0">
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 items-center justify-center p-12 relative overflow-hidden h-screen sticky top-0">
         <div className="absolute inset-0 z-0 opacity-40">
           <img
             alt="Abstract network"
@@ -52,7 +52,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Right Side (Form) */}
-      <div className="flex w-full lg:w-1/2 min-h-screen flex-col items-center justify-center p-8 pt-10 pb-24 bg-background-light dark:bg-background-dark">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 bg-background-light dark:bg-background-dark overflow-y-auto pb-20">
 
 
         <div className="w-full max-w-md space-y-8 bg-background-light dark:bg-background-dark p-8 rounded-2xl shadow-xl border border-border-dark">
