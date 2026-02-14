@@ -32,15 +32,7 @@ const Login: React.FC = () => {
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row bg-background-dark">
 
-      {/* Mobile Header */}
-      <div className="flex lg:hidden items-center justify-center py-3 bg-surface-dark border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30 text-white backdrop-blur-sm border border-white/10">
-            <span className="material-symbols-outlined text-[18px]">diamond</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white leading-none">SOCIALPRIME</span>
-        </div>
-      </div>
+
 
       {/* Left Side (Hero) */}
       <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-center pt-8 pb-4 lg:py-12 px-5 lg:px-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[35vh] lg:min-h-auto order-1 lg:order-none">
@@ -54,9 +46,7 @@ const Login: React.FC = () => {
         </div>
 
         <div className="relative z-10 max-w-lg mb-0 lg:mb-8">
-          <div className="hidden lg:inline-flex items-center justify-center w-10 h-10 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-xl shadow-primary/30 text-white mb-2 lg:mb-6 backdrop-blur-sm border border-white/10 animate-fade-in-up">
-            <span className="material-symbols-outlined text-[20px] lg:text-[32px]">diamond</span>
-          </div>
+
 
           <h1 className="text-2xl lg:text-5xl font-bold tracking-tight text-white mb-2 lg:mb-6 leading-tight lg:leading-[1.1] animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             A Autoridade Digital que Você Merece.
@@ -72,6 +62,7 @@ const Login: React.FC = () => {
       <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none">
         <div className="w-full max-w-[420px] space-y-4">
           <div className="text-center sm:text-left">
+            <img src="/logo.png" alt="SocialPrime" className="h-40 w-auto mx-auto mb-6 sm:mx-0" />
             <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Bem-vindo de volta</h2>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Acesse sua conta SocialPrime para continuar.</p>
           </div>

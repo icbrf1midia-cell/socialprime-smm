@@ -67,12 +67,7 @@ const Register: React.FC = () => {
             <div className="absolute inset-0 z-0 h-full w-full bg-cover bg-center opacity-60 mix-blend-overlay" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1639322537504-6427a16b0a28?auto=format&fit=crop&q=80&w=2832&ixlib=rb-4.0.3')` }}></div>
             <div className="absolute inset-0 z-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90"></div>
 
-            <div className="relative z-10 flex items-center gap-3">
-               <div className="flex items-center justify-center size-10 rounded-lg bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/20 text-white">
-                  <span className="material-symbols-outlined text-2xl">diamond</span>
-               </div>
-               <span className="text-2xl font-bold tracking-tight text-white">SocialPrime</span>
-            </div>
+
 
             <div className="relative z-10 max-w-lg">
                <h2 className="text-4xl font-bold leading-tight tracking-tight text-white mb-4">Domine com a SocialPrime.</h2>
@@ -87,6 +82,7 @@ const Register: React.FC = () => {
          <div className="flex w-full lg:w-1/2 h-full flex-col bg-background-light dark:bg-background-dark overflow-y-auto">
             <div className="m-auto w-full max-w-[520px] px-6 py-12 lg:px-10">
                <div className="mb-8">
+                  <img src="/logo.png" alt="SocialPrime" className="h-40 w-auto mx-auto mb-6 lg:mx-0" />
                   <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crie sua conta</h1>
                   <p className="text-slate-500 dark:text-text-secondary">Junte-se à plataforma premium de SMM.</p>
                </div>

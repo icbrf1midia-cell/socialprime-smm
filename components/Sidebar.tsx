@@ -89,11 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     } flex flex-col`}
             >
                 {/* Logo Area */}
-                <div className="p-6 border-b border-border-dark flex items-center justify-between">
-                    <h1 className="text-2xl font-black bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                        SocialPrime
-                    </h1>
-                    <button onClick={onClose} className="lg:hidden text-text-secondary hover:text-white">
+                {/* Logo Area */}
+                <div className="p-6 border-b border-border-dark flex flex-col items-center gap-4 relative">
+                    <img src="/logo.png" alt="SocialPrime" className="h-28 w-auto" />
+                    <button onClick={onClose} className="lg:hidden absolute top-6 right-6 text-text-secondary hover:text-white">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -105,6 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
                     <NavItem to="/history" icon="history" label="Histórico" />
                     <NavItem to="/account" icon="person" label="Minha Conta" />
+                    <NavItem to="/notifications" icon="notifications" label="Notificações" />
                 </nav>
 
                 {/* User & Logout Area */}
@@ -128,6 +128,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     )}
 
 
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-500 hover:bg-red-500/10 hover:text-red-400 transition-all justify-center mt-2"
+                    >
+                        <span className="material-symbols-outlined">logout</span>
+                        <span className="font-medium">Sair</span>
+                    </button>
                 </div>
             </aside>
         </>

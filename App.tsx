@@ -10,6 +10,7 @@ import ApiConfig from './pages/ApiConfig';
 import Checkout from './pages/Checkout';
 import History from './pages/History';
 import Account from './pages/Account';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AddFunds from './pages/AddFunds';
@@ -95,6 +96,7 @@ const LayoutHandler: React.FC = () => {
               <Route path="/history" element={<History />} />
               <Route path="/api" element={<ApiConfig />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/services" element={<div className="p-10 text-center text-text-secondary">Página de Serviços (Em construção)</div>} />
               <Route path="*" element={<Navigate to="/" replace />} />
