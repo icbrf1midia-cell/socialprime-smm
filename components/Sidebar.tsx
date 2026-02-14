@@ -127,13 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         </div>
                     )}
 
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-500 hover:bg-red-500/10 hover:text-red-400 transition-all justify-center"
-                    >
-                        <span className="material-symbols-outlined">logout</span>
-                        <span className="font-medium">Sair</span>
-                    </button>
+
                 </div>
             </aside>
         </>
