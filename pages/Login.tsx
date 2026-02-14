@@ -30,7 +30,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-background-dark">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-background-dark overflow-y-auto pb-10 lg:pb-0">
 
 
 
