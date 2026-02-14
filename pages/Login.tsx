@@ -30,12 +30,12 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row bg-background-dark overflow-y-auto pb-10 lg:pb-0">
+    <div className="flex min-h-screen h-auto w-full flex-col lg:flex-row bg-background-dark overflow-y-scroll pb-20 lg:pb-0">
 
 
 
       {/* Left Side (Hero) */}
-      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-center pt-6 pb-2 lg:py-12 px-5 lg:px-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[30vh] lg:min-h-auto order-1 lg:order-none">
+      <div className="flex w-full lg:w-1/2 xl:w-5/12 relative flex-col justify-center py-4 lg:py-12 px-5 lg:px-12 overflow-hidden bg-surface-dark border-b lg:border-b-0 lg:border-r border-white/5 min-h-[25vh] lg:min-h-auto order-1 lg:order-none">
         <div className="absolute inset-0 z-0 opacity-40 animate-float">
           <img
             alt="Abstract network"
@@ -60,11 +60,11 @@ const Login: React.FC = () => {
 
       {/* Right Side (Form) */}
       <div className="flex flex-1 flex-col justify-center items-center px-4 py-4 sm:px-6 lg:px-20 xl:px-24 w-full bg-background-light dark:bg-background-dark order-2 lg:order-none pb-20">
-        <div className="w-full max-w-[420px] space-y-4">
+        <div className="w-full max-w-[420px] space-y-2">
           <div className="text-center sm:text-left">
-            <img src="/logo.png" alt="SocialPrime" className="h-32 lg:h-40 w-auto mx-auto mb-4 sm:mx-0" />
+            <img src="/logo.png" alt="SocialPrime" className="h-32 lg:h-40 w-auto mx-auto mb-2 sm:mx-0" />
             <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Bem-vindo de volta</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Acesse sua conta SocialPrime para continuar.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Acesse sua conta SocialPrime para continuar.</p>
           </div>
 
           <form className="space-y-3" onSubmit={handleLogin}>
