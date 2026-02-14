@@ -24,8 +24,9 @@ const NewOrder: React.FC = () => {
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [link, setLink] = useState('');
 
+
   const location = useLocation();
-  const navigate = useNavigate(); // Added for redirect
+  const navigate = useNavigate();
 
   // Fetch User Balance
   useEffect(() => {
@@ -46,11 +47,10 @@ const NewOrder: React.FC = () => {
     fetchBalance();
   }, []);
 
-
-
   // Fetch Services on Load
   useEffect(() => {
     const fetchServices = async () => {
+      setLoading(true);
       const { data, error } = await supabase
         .from('services')
         .select('*');
@@ -60,14 +60,22 @@ const NewOrder: React.FC = () => {
         const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category)));
         setCategories(uniqueCategories);
 
-        // Check for category in URL params AFTER services are loaded
+        // Check for params in URL params
         const params = new URLSearchParams(location.search);
         const categoryParam = params.get('category');
+
         if (categoryParam) {
-          // Case-insensitive matching using includes for flexibility
-          const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
-          if (match) {
-            setSelectedCategory(match);
+          // Try exact match first (case insensitive)
+          const exactMatch = uniqueCategories.find(c => c.toLowerCase() === categoryParam.toLowerCase());
+
+          if (exactMatch) {
+            setSelectedCategory(exactMatch);
+          } else {
+            // Fallback to partial match if exact match fails
+            const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
+            if (match) {
+              setSelectedCategory(match);
+            }
           }
         }
       }
@@ -80,15 +88,20 @@ const NewOrder: React.FC = () => {
   const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
 
   // Calculate Total
-  // Rate is usually per 1000.
   const total = selectedService
     ? (quantity / 1000) * selectedService.rate
     : 0;
 
-  // Filter services by selected category
-  const filteredServices = services.filter(s => s.category === selectedCategory);
+  // Filter services logic
+  const filteredServices = services.filter(s => {
+    // Check Category Match
+    // If a category is selected, service must belong to it.
+    // If NO category is selected, this condition is true (show all categories).
+    return selectedCategory ? s.category === selectedCategory : true;
+  });
 
-  // Submit Order
+  // Derived filtered categories (optional: to limit category dropdown based on search? No, keep it simple)
+
   const handleCreateOrder = async () => {
     if (!selectedService || !userBalance || userBalance < total) {
       alert('Saldo insuficiente ou serviço inválido.');
@@ -182,12 +195,16 @@ const NewOrder: React.FC = () => {
                 </label>
                 <div className="relative">
                   <select
-                    className="w-full appearance-none rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 pr-10 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none"
+                    className="w-full appearance-none rounded-lg bg-[#111a22] border border-border-dark text-white px-4 py-3.5 pr-10 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-base outline-none disabled:opacity-50"
                     value={selectedServiceId}
                     onChange={(e) => setSelectedServiceId(e.target.value)}
-                    disabled={!selectedCategory}
+                    disabled={filteredServices.length === 0}
                   >
-                    <option value="" disabled>Escolha o tipo de serviço...</option>
+                    <option value="" disabled>
+                      {filteredServices.length === 0
+                        ? "Nenhum serviço disponível."
+                        : "Escolha o tipo de serviço..."}
+                    </option>
                     {filteredServices.map(service => (
                       <option key={service.service_id} value={service.service_id}>
                         {service.service_id} - {service.name} - R$ {Number(service.rate).toFixed(2)}/k

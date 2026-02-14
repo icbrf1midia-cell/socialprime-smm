@@ -1,266 +1,264 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+interface UserProfile {
+    id: string;
+    email: string;
+    full_name: string;
+    balance: number;
+    avatar_url: string | null;
+}
 
 const Account: React.FC = () => {
-   const [loading, setLoading] = useState(true);
-   const [updating, setUpdating] = useState(false);
-   const [userId, setUserId] = useState<string | null>(null);
-   const [fullName, setFullName] = useState('');
-   const [email, setEmail] = useState('');
-   const [balance, setBalance] = useState(0);
-   const [newPassword, setNewPassword] = useState('');
-   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-   const [uploading, setUploading] = useState(false);
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-   useEffect(() => {
-      const fetchProfile = async () => {
-         const { data: { user } } = await supabase.auth.getUser();
-         if (user) {
-            setUserId(user.id);
-            setEmail(user.email || '');
+    useEffect(() => {
+        fetchProfile();
+    }, []);
 
-            const { data: profile, error } = await supabase
-               .from('profiles')
-               .select('*')
-               .eq('id', user.id)
-               .single();
-
-            if (error) {
-               console.error('Error fetching profile:', error);
+    const fetchProfile = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate('/login');
+                return;
             }
 
-            if (profile) {
-               setFullName(profile.full_name || '');
-               setBalance(profile.balance || 0);
-               // Safely access avatar_url if it exists
-               setAvatarUrl((profile as any).avatar_url);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (error) throw error;
+
+            // Tratamento da URL do Avatar
+            let finalAvatarUrl = null;
+            if (data.avatar_url) {
+                if (data.avatar_url.startsWith('http')) {
+                    finalAvatarUrl = data.avatar_url;
+                } else {
+                    const { data: publicUrlData } = supabase.storage
+                        .from('avatars')
+                        .getPublicUrl(data.avatar_url);
+                    finalAvatarUrl = publicUrlData.publicUrl;
+                }
             }
-         }
-         setLoading(false);
-      };
 
-      fetchProfile();
-   }, []);
-
-   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
-      try {
-         setUploading(true);
-
-         if (!event.target.files || event.target.files.length === 0) {
-            throw new Error('Você deve selecionar uma imagem para upload.');
-         }
-
-         const file = event.target.files[0];
-         const fileExt = file.name.split('.').pop();
-         const fileName = `${userId}-${Math.random()}.${fileExt}`;
-         const filePath = `${fileName}`;
-
-         const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, file);
-
-         if (uploadError) {
-            throw uploadError;
-         }
-
-         const { data } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(filePath);
-
-
-         const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ avatar_url: data.publicUrl })
-            .eq('id', userId);
-
-         if (updateError) {
-            throw updateError;
-         }
-
-         setAvatarUrl(data.publicUrl);
-         alert('Avatar atualizado com sucesso!');
-      } catch (error: any) {
-         alert('Erro ao fazer upload do avatar: ' + error.message);
-      } finally {
-         setUploading(false);
-      }
-   };
-
-   const handleUpdate = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!userId) return;
-
-      setUpdating(true);
-      try {
-         // Update Profile Name
-         const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ full_name: fullName })
-            .eq('id', userId);
-
-         if (profileError) throw profileError;
-
-         // Update Password if provided
-         if (newPassword) {
-            const { error: passwordError } = await supabase.auth.updateUser({
-               password: newPassword
+            setProfile({
+                ...data,
+                email: user.email || '',
+                avatar_url: finalAvatarUrl
             });
-            if (passwordError) throw passwordError;
-         }
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-         alert('Dados atualizados com sucesso!');
-         setNewPassword(''); // Clear password field after update
-      } catch (error: any) {
-         console.error('Error updating profile:', error);
-         alert('Erro ao atualizar perfil: ' + error.message);
-      } finally {
-         setUpdating(false);
-      }
-   };
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
 
-   if (loading) {
-      return (
-         <div className="flex-1 w-full flex items-center justify-center">
-            <p className="text-white">Carregando dados da conta...</p>
-         </div>
-      );
-   }
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setMessage(null);
+            setUploading(true);
+            const file = event.target.files?.[0];
+            if (!file || !profile) return;
 
-   return (
-      <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-8">
-         <div className="flex flex-wrap justify-between items-end gap-4 border-b border-border-dark pb-6">
-            <div className="flex flex-col gap-2">
-               <h1 className="text-white text-3xl md:text-4xl font-black tracking-tight">Minha Conta</h1>
-               <p className="text-text-secondary text-base max-w-2xl">Gerencie seu saldo, dados pessoais e visualize seu histórico de transações.</p>
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: filePath })
+                .eq('id', profile.id);
+
+            if (updateError) throw updateError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            setProfile({ ...profile, avatar_url: publicUrl });
+            setMessage({ type: 'success', text: 'Foto de perfil atualizada!' });
+
+            window.dispatchEvent(new Event('userUpdated')); // Atualiza sidebar
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            setMessage({ type: 'error', text: 'Erro ao enviar foto.' });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handlePasswordReset = async () => {
+        if (!profile?.email) return;
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+                redirectTo: window.location.origin + '/reset-password',
+            });
+            if (error) throw error;
+            setMessage({ type: 'success', text: 'E-mail de redefinição enviado!' });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: 'Erro ao solicitar redefinição.' });
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
             </div>
-         </div>
+        );
+    }
 
-         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Balance */}
-            <div className="rounded-xl border border-border-dark bg-surface-dark p-6 shadow-sm relative overflow-hidden group col-span-1 lg:col-span-2">
-               <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-500"></div>
-               <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                  <div className="flex justify-between items-start">
-                     <div>
-                        <p className="text-text-secondary text-sm font-medium uppercase tracking-wider mb-1">Saldo Disponível</p>
-                        <div className="flex items-baseline gap-1">
-                           <span className="text-text-secondary text-2xl font-light">R$</span>
-                           <span className="text-white text-4xl md:text-5xl font-bold tracking-tight">
-                              {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                           </span>
+    return (
+        <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+            {/* Page Header */}
+            <div className="border-b border-border-dark pb-6">
+                <h2 className="text-3xl font-black text-white">Minha Conta</h2>
+                <p className="text-text-secondary">Visualize suas informações pessoais e saldo.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Left Column: Avatar & Balance */}
+                <div className="space-y-6">
+                    {/* Avatar Section */}
+                    <div className="bg-card-dark p-6 rounded-xl border border-border-dark flex flex-col items-center text-center">
+                        <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-border-dark group-hover:border-primary transition-all">
+                                {profile?.avatar_url ? (
+                                    <img
+                                        src={profile.avatar_url}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-background-dark flex items-center justify-center text-text-secondary">
+                                        <span className="material-symbols-outlined text-4xl">person</span>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="material-symbols-outlined text-white">photo_camera</span>
+                                </div>
+                            </div>
+                            {uploading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                                </div>
+                            )}
                         </div>
-                     </div>
-                     <div className="bg-primary/20 p-2.5 rounded-lg">
-                        <span className="material-symbols-outlined text-primary text-3xl">account_balance_wallet</span>
-                     </div>
-                  </div>
-                  <div className="flex gap-3 mt-auto">
-                     <Link to="/add-funds" className="flex-1 min-w-[140px] items-center justify-center gap-2 rounded-lg h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20 flex">
-                        <span className="material-symbols-outlined text-[20px]">add</span>
-                        <span>Adicionar Saldo</span>
-                     </Link>
-                  </div>
-               </div>
-            </div>
-
-            {/* Loyalty Section Removed as requested */}
-         </div>
-
-         {/* Form */}
-         <div className="rounded-xl border border-border-dark bg-surface-dark overflow-hidden">
-            <div className="border-b border-border-dark px-6 py-4 flex items-center bg-surface-dark">
-               <h3 className="text-white text-lg font-bold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-text-secondary">manage_accounts</span>
-                  Dados Pessoais
-               </h3>
-            </div>
-            <div className="p-6 md:p-8">
-               {/* Avatar Section */}
-               <div className="flex flex-col items-center mb-8">
-                  <div className="relative group">
-                     <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-dark shadow-xl">
-                        {avatarUrl ? (
-                           <img
-                              src={avatarUrl}
-                              alt="Avatar"
-                              className="w-full h-full object-cover"
-                           />
-                        ) : (
-                           <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary">
-                              <span className="material-symbols-outlined text-5xl">person</span>
-                           </div>
-                        )}
-                        {uploading && (
-                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <span className="material-symbols-outlined animate-spin text-white text-3xl">refresh</span>
-                           </div>
-                        )}
-                     </div>
-                     <label className="absolute bottom-0 right-0 bg-primary hover:bg-primary-dark text-white p-2 rounded-full cursor-pointer shadow-lg transition-colors" title="Alterar foto">
-                        <span className="material-symbols-outlined text-xl">photo_camera</span>
                         <input
-                           type="file"
-                           className="hidden"
-                           accept="image/*"
-                           onChange={uploadAvatar}
-                           disabled={uploading}
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleAvatarUpload}
+                            className="hidden"
+                            accept="image/*"
                         />
-                     </label>
-                  </div>
-                  <p className="text-text-secondary text-sm mt-3">Clique na câmera para alterar sua foto</p>
-               </div>
+                        <h3 className="mt-4 text-xl font-bold text-white">{profile?.full_name || 'Usuário'}</h3>
+                        <p className="text-sm text-text-secondary">{profile?.email}</p>
+                    </div>
 
-               <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                  <div className="flex flex-col gap-2">
-                     <label className="text-text-secondary text-sm font-medium ml-1">Nome Completo</label>
-                     <div className="relative">
-                        <input
-                           className="w-full h-11 pl-4 pr-10 bg-background-dark/50 rounded-lg border border-border-dark text-text-secondary text-sm cursor-not-allowed opacity-70"
-                           type="text"
-                           value={fullName}
-                           disabled
-                           readOnly
-                        />
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">lock</span>
-                     </div>
-                     <p className="text-[10px] text-text-secondary ml-1">Para alterar o nome, entre em contato com o suporte.</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                     <label className="text-text-secondary text-sm font-medium ml-1">E-mail</label>
-                     <input
-                        className="w-full h-11 px-4 bg-background-dark/50 rounded-lg border border-border-dark text-text-secondary text-sm cursor-not-allowed opacity-70"
-                        disabled
-                        type="email"
-                        value={email}
-                     />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                     <label className="text-text-secondary text-sm font-medium ml-1">Alterar Senha (Opcional)</label>
-                     <input
-                        className="w-full h-11 px-4 bg-background-dark rounded-lg border border-border-dark text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                        type="password"
-                        placeholder="Digite para alterar..."
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                     />
-                  </div>
+                    {/* Balance Card */}
+                    <div className="bg-gradient-to-br from-primary/20 to-purple-600/20 p-6 rounded-xl border border-primary/20 relative overflow-hidden">
+                        <p className="text-sm font-bold text-gray-300 uppercase tracking-wider">Saldo Disponível</p>
+                        <h3 className="text-3xl font-black text-white mt-2">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profile?.balance || 0)}
+                        </h3>
+                        <div className="mt-4">
+                            <Link to="/add-funds" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors">
+                                <span className="material-symbols-outlined">add_card</span>
+                                Adicionar Saldo
+                            </Link>
+                        </div>
+                    </div>
+                </div>
 
-                  <div className="col-span-1 md:col-span-2 flex justify-end mt-4">
-                     <button
-                        type="submit"
-                        disabled={updating}
-                        className="h-11 px-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                     >
-                        {updating ? 'Salvando...' : 'Salvar Alterações'}
-                        {!updating && <span className="material-symbols-outlined text-[20px]">check</span>}
-                     </button>
-                  </div>
-               </form>
+                {/* Right Column: Personal Info Form */}
+                <div className="md:col-span-2 space-y-6">
+                    <div className="bg-card-dark p-6 rounded-xl border border-border-dark">
+                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">badge</span>
+                            Dados Pessoais
+                        </h3>
+
+                        {message && (
+                            <div className={`p-4 rounded-lg mb-6 text-sm font-medium ${message.type === 'success'
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                }`}>
+                                {message.text}
+                            </div>
+                        )}
+
+                        <form className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">Nome Completo</label>
+                                <input
+                                    type="text"
+                                    value={profile?.full_name || ''}
+                                    readOnly
+                                    className="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-lg text-text-secondary focus:outline-none cursor-default"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-text-secondary mb-2">E-mail</label>
+                                <input
+                                    type="email"
+                                    value={profile?.email || ''}
+                                    readOnly
+                                    className="w-full px-4 py-2.5 bg-background-dark border border-border-dark rounded-lg text-text-secondary focus:outline-none cursor-default"
+                                />
+                            </div>
+                            <p className="text-xs text-text-secondary pt-2">
+                                * Dados pessoais não podem ser alterados. Entre em contato com o suporte se precisar de ajuda.
+                            </p>
+                        </form>
+                    </div>
+
+                    {/* Security Section */}
+                    <div className="bg-card-dark p-6 rounded-xl border border-border-dark">
+                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">lock_person</span>
+                            Segurança
+                        </h3>
+                        <div className="p-4 border border-border-dark rounded-lg bg-background-dark/30">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="material-symbols-outlined text-primary">key</span>
+                                <h4 className="font-bold text-white">Senha de Acesso</h4>
+                            </div>
+                            <p className="text-sm text-text-secondary mb-4">
+                                Recomendamos alterar sua senha periodicamente para manter sua conta segura.
+                            </p>
+                            <button
+                                onClick={handlePasswordReset}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-lg border border-border-dark transition-colors"
+                            >
+                                Redefinir Senha
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-         </div>
-      </div>
-   );
+        </div>
+    );
 };
 
 export default Account;

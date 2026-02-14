@@ -1,124 +1,143 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+interface UserProfile {
+    full_name: string;
+    avatar_url: string | null;
+    email: string;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const [profile, setProfile] = React.useState<{ full_name: string; balance: number; avatar_url?: string; role?: string } | null>(null);
-  const [userEmail, setUserEmail] = React.useState<string | null>(null);
-  const ADMIN_EMAIL = 'brunomeueditor@gmail.com';
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  React.useEffect(() => {
+    useEffect(() => {
+        fetchProfile();
+
+        // Listen for updates from Account page or elsewhere
+        const handleUserUpdate = () => fetchProfile();
+        window.addEventListener('userUpdated', handleUserUpdate);
+
+        return () => window.removeEventListener('userUpdated', handleUserUpdate);
+    }, []);
+
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || null);
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfile(data);
-      }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', user.id)
+                .single();
+
+            let finalAvatarUrl = null;
+            if (data?.avatar_url) {
+                const { data: publicDesc } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(data.avatar_url);
+                finalAvatarUrl = publicDesc.publicUrl;
+            }
+
+            setProfile({
+                full_name: data?.full_name || '',
+                avatar_url: finalAvatarUrl,
+                email: user.email || ''
+            });
+        }
     };
-    fetchProfile();
-  }, []);
 
-  const isAdmin = userEmail === ADMIN_EMAIL || profile?.role === 'admin';
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
 
-  const navItems = [
-    { name: 'Dashboard', icon: 'dashboard', path: '/' },
-    // Admin: Hide Operational Links
-    ...(!isAdmin ? [
-      { name: 'Novo Pedido', icon: 'add_circle', path: '/new-order' },
-      { name: 'Adicionar Saldo', icon: 'account_balance_wallet', path: '/add-funds' },
-      { name: 'Histórico', icon: 'list_alt', path: '/history' },
-    ] : []),
-    { name: 'Minha Conta', icon: 'person', path: '/account' },
-    // Admin: Show Management Links
-    ...(isAdmin ? [
-      { name: 'Painel Admin', icon: 'admin_panel_settings', path: '/admin' },
-      // API Config is inside Admin Panel usually, but keeping checking if user wants explicit link?
-      // User said: "Mantenha apenas: Dashboard, Painel Admin (Gestão de Usuários), Configurações API e Minha Conta."
-      // So I will add Config API link explicitly.
-      { name: 'Config API', icon: 'api', path: '/api' },
-    ] : [])
-  ];
+    const isActive = (path: string) => location.pathname === path;
 
-  return (
-    <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm transition-opacity"
-          onClick={onClose}
-        ></div>
-      )}
+    const NavItem = ({ to, icon, label }: { to: string; icon: string; label: string }) => (
+        <Link
+            to={to}
+            onClick={onClose}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive(to)
+                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                : 'text-text-secondary hover:bg-white/5 hover:text-white'
+                }`}
+        >
+            <span className="material-symbols-outlined">{icon}</span>
+            <span className="font-medium">{label}</span>
+        </Link>
+    );
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 h-full border-r border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 flex flex-col flex-shrink-0
-          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
-        `}
-      >
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-gradient-to-br from-primary to-blue-600 p-2 rounded-lg shadow-lg shadow-primary/20">
-            <span className="material-symbols-outlined text-white text-2xl">diamond</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold leading-none tracking-tight text-slate-900 dark:text-white">SocialPrime</h1>
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-primary mt-1">Premium Panel</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-          <p className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 mt-2">Menu Principal</p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => { if (window.innerWidth < 1024) onClose(); }} // Close on mobile navigation
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${isActive
-                  ? 'bg-primary text-white font-medium shadow-md shadow-primary/20'
-                  : 'text-slate-600 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span className={`material-symbols-outlined text-[20px] ${isActive ? 'filled' : ''}`}>
-                    {item.icon}
-                  </span>
-                  <span className="text-sm font-medium">{item.name}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#0f1520]">
-          <div className="flex items-center gap-3">
+    return (
+        <>
+            {/* Mobile Overlay */}
             <div
-              className={`h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary ${!profile?.avatar_url ? 'bg-primary/10 flex items-center justify-center' : ''}`}
-              style={profile?.avatar_url ? { backgroundImage: `url('${profile.avatar_url}')` } : {}}
+                className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}
+                onClick={onClose}
+            />
+
+            {/* Sidebar Container */}
+            <aside
+                className={`fixed lg:static inset-y-0 left-0 w-64 bg-card-dark border-r border-border-dark transform transition-transform z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    } flex flex-col`}
             >
-              {!profile?.avatar_url && <span className="material-symbols-outlined text-primary text-sm">person</span>}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold dark:text-white truncate max-w-[140px]">{profile?.full_name || 'Usuário'}</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </>
-  );
+                {/* Logo Area */}
+                <div className="p-6 border-b border-border-dark flex items-center justify-between">
+                    <h1 className="text-2xl font-black bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+                        SocialPrime
+                    </h1>
+                    <button onClick={onClose} className="lg:hidden text-text-secondary hover:text-white">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                {/* Navigation Links */}
+                <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <NavItem to="/" icon="dashboard" label="Dashboard" />
+                    <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
+                    <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
+                    <NavItem to="/history" icon="history" label="Histórico" />
+                    <NavItem to="/account" icon="person" label="Minha Conta" />
+                </nav>
+
+                {/* User & Logout Area */}
+                <div className="p-4 border-t border-border-dark space-y-3">
+                    {profile && (
+                        <div className="flex items-center gap-3 px-2">
+                            <div className="w-10 h-10 rounded-full bg-background-light overflow-hidden flex-shrink-0 border border-border-dark">
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-text-secondary">
+                                        <span className="material-symbols-outlined text-lg">person</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-white truncate">{profile.full_name || 'Usuário'}</p>
+                                <p className="text-xs text-text-secondary truncate">{profile.email}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-500 hover:bg-red-500/10 hover:text-red-400 transition-all justify-center"
+                    >
+                        <span className="material-symbols-outlined">logout</span>
+                        <span className="font-medium">Sair</span>
+                    </button>
+                </div>
+            </aside>
+        </>
+    );
 };
 
 export default Sidebar;

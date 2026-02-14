@@ -81,18 +81,17 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </span>
       </div>
 
-      {/* Search */}
-      <div className="hidden lg:flex items-center max-w-md w-full">
-        <div className="relative w-full">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>
-          </span>
-          <input
-            className="block w-full pl-10 pr-3 py-2 border border-transparent focus:border-primary rounded-lg leading-5 bg-slate-100 dark:bg-[#0B1120] text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm transition-all"
-            placeholder="Buscar serviços..."
-            type="text"
-          />
-        </div>
+      {/* Search - REMOVED */}
+      <div className="hidden lg:flex items-center max-w-md w-full opacity-0 pointer-events-none">
+        {/* Placeholder to keep spacing if needed, or just remove. User said "remove completely", but flex justify-between might need balancing. 
+           Actually, justify-between with 3 items (menu, search, actions) puts search in middle?
+           Header has: 
+           1. Sidebar toggle/Logo (Left)
+           2. Search (Center-ish/Left-ish due to max-w-md)
+           3. Right Actions (Right)
+           
+           If I remove search entirely, it becomes Justify-Between between Logo and Actions. That's fine.
+        */}
       </div>
 
       {/* Right Actions */}

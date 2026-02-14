@@ -79,25 +79,26 @@ Deno.serve(async (req) => {
             console.log(`[Cron] Pedido ${order.id} atualizado para: ${newStatus}`)
 
 
-            // Tradução para mensagem amigável
-            const statusTranslation: Record<string, string> = {
-              'pending': 'Pendente',
-              'processing': 'Processando',
-              'in_progress': 'Em Progresso',
-              'completed': 'Concluído',
-              'partial': 'Parcial',
-              'canceled': 'Cancelado',
-              'refunded': 'Reembolsado'
-            };
-            const translatedStatus = statusTranslation[newStatus] || newStatus;
+            let notificationMessage = `O status do pedido #${order.id.slice(0, 8)} mudou para ${newStatus}.`;
+            let notificationType = 'info';
+
+            if (newStatus === 'completed') {
+              notificationMessage = `Seu pedido #${order.id.slice(0, 8)} foi concluído com sucesso!`;
+              notificationType = 'success'; // Assuming you might have a 'success' type or keep 'info'
+            } else if (newStatus === 'canceled' || newStatus === 'refunded') {
+              notificationMessage = `Seu pedido #${order.id.slice(0, 8)} foi cancelado/reembolsado.`;
+              notificationType = 'warning';
+            } else if (newStatus === 'processing') {
+              notificationMessage = `Seu pedido #${order.id.slice(0, 8)} está em processamento.`;
+            }
 
             await supabaseClient
               .from('notifications')
               .insert({
                 user_id: order.user_id,
-                title: 'Pedido Atualizado',
-                message: `Seu pedido #${order.id.slice(0, 8)} agora está: ${translatedStatus}.`,
-                type: newStatus === 'completed' ? 'success' : 'info',
+                title: 'Atualização de Pedido',
+                message: notificationMessage,
+                type: notificationType === 'success' ? 'info' : notificationType, // Keep compatible with existing types if unsure
                 is_read: false
               })
 
