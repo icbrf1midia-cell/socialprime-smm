@@ -144,9 +144,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {profile?.email === 'brunomeueditor@gmail.com' && (
                         <NavItem to="/admin" icon="admin_panel_settings" label="Painel Admin" />
                     )}
-                    <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
-                    <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
-                    <NavItem to="/history" icon="history" label="Histórico" />
+                    {profile?.email !== 'brunomeueditor@gmail.com' && (
+                        <>
+                            <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
+                            <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
+                            <NavItem to="/history" icon="history" label="Histórico" />
+                        </>
+                    )}
                     <NavItem to="/account" icon="person" label="Minha Conta" />
                     <NavItem to="/notifications" icon="notifications" label="Notificações" badge={unreadCount} />
                 </nav>
