@@ -100,6 +100,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const LayoutHandler: React.FC = () => {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/register" replace />} />
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
