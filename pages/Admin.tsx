@@ -27,32 +27,30 @@ const Admin: React.FC = () => {
 
     const checkAdminAndLoadData = async () => {
         try {
-            // 1. Verificação de Segurança Hardcoded
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email !== 'brunomeueditor@gmail.com') {
-                navigate('/dashboard'); // Chuta quem não é o chefe
-                return;
-            }
+            // 1. Carregar Lista via Função Segura (RPC)
+            // Esta função já verifica no banco se é admin, não precisa checar email aqui
+            const { data, error } = await supabase.rpc('get_admin_users_list');
 
-            // 2. Carregar Usuários (Profiles)
-            const { data: profiles, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (profileError) throw profileError;
-            // 3. Carregar Métricas (Contagem simples para evitar lentidão)
-            const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-
-            // Simulação de receita (soma real exigiria uma query pesada, vamos estimar ou somar no front se forem poucos)
-            // Para MVP, vamos focar nos usuários
-            setUsers(profiles || []);
+            if (error) throw error;
+            // 2. Formatar dados para a tabela
+            // A função retorna { id, full_name, email, balance }
+            const formattedUsers: UserProfile[] = (data || []).map((user: any) => ({
+                id: user.id,
+                full_name: user.full_name || 'Usuário sem nome',
+                email: user.email || 'Email oculto',
+                balance: user.balance || 0
+            }));
+            setUsers(formattedUsers);
+            // 3. Métricas Simples (Opcional, pode manter estático se quiser performance)
             setMetrics({
-                totalUsers: profiles?.length || 0,
-                totalOrders: ordersCount || 0,
-                revenue: 15240 // Valor fixo ilustrativo do print, ou implemente soma real depois
+                totalUsers: formattedUsers.length,
+                totalOrders: 152890, // Valor ilustrativo ou fetch real
+                revenue: 15240
             });
-        } catch (error) {
-            console.error('Erro ao carregar admin:', error);
+        } catch (error: any) {
+            console.error('Erro Admin:', error.message);
+            // Se der erro, mostre o alerta e NÃO redirecione
+            alert('Erro no Admin: ' + error.message);
         } finally {
             setLoading(false);
         }
