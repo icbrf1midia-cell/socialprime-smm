@@ -7,6 +7,8 @@ interface UserProfile {
     email: string; // Vamos buscar via join ou view se possível, senão mostramos ID
     full_name: string;
     balance: number;
+    total_spent: number; // Novo campo
+    status?: string;     // Vamos definir como 'Ativo' padrão por enquanto
 }
 
 const Admin: React.FC = () => {
@@ -37,8 +39,10 @@ const Admin: React.FC = () => {
             const formattedUsers: UserProfile[] = (data || []).map((user: any) => ({
                 id: user.id,
                 full_name: user.full_name || 'Usuário sem nome',
-                email: user.email || 'Email oculto',
-                balance: user.balance || 0
+                email: user.email || 'Sem email',
+                balance: user.balance || 0,
+                total_spent: user.total_spent || 0,
+                status: 'Ativo' // Hardcoded visualmente por enquanto
             }));
             setUsers(formattedUsers);
             // 3. Métricas Simples (Opcional, pode manter estático se quiser performance)
@@ -141,7 +145,10 @@ const Admin: React.FC = () => {
                         <thead className="bg-slate-50 dark:bg-[#151e29] text-slate-500 dark:text-slate-400">
                             <tr>
                                 <th className="px-6 py-4 font-medium">Usuário / ID</th>
+                                <th className="px-6 py-4 font-medium">E-mail</th>
                                 <th className="px-6 py-4 font-medium">Saldo Atual</th>
+                                <th className="px-6 py-4 font-medium">Gasto Total</th>
+                                <th className="px-6 py-4 font-medium">Status</th>
                                 <th className="px-6 py-4 font-medium text-right">Ações</th>
                             </tr>
                         </thead>
@@ -149,12 +156,23 @@ const Admin: React.FC = () => {
                             {users.map((user) => (
                                 <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="px-6 py-4">
-                                        <div className="font-medium text-slate-900 dark:text-white">{user.full_name || 'Sem nome'}</div>
+                                        <div className="font-bold text-slate-900 dark:text-white">{user.full_name || 'Sem nome'}</div>
                                         <div className="text-xs text-slate-500">{user.id}</div>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
+                                        {user.email}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`font-bold ${user.balance > 0 ? 'text-green-500' : 'text-slate-500'}`}>
                                             R$ {user.balance?.toFixed(2) || '0.00'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                                        R$ {user.total_spent?.toFixed(2) || '0.00'}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="bg-green-500/10 text-green-500 rounded px-2 py-1 text-xs font-medium">
+                                            {user.status || 'Ativo'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
