@@ -141,6 +141,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto p-4 space-y-2">
                     <NavItem to="/" icon="dashboard" label="Dashboard" />
+                    {profile?.email === 'brunomeueditor@gmail.com' && (
+                        <NavItem to="/admin" icon="admin_panel_settings" label="Painel Admin" />
+                    )}
                     <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
                     <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
                     <NavItem to="/history" icon="history" label="Histórico" />

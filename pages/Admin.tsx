@@ -1,124 +1,221 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
+
+interface UserProfile {
+    id: string;
+    email: string; // Vamos buscar via join ou view se possível, senão mostramos ID
+    full_name: string;
+    balance: number;
+}
 
 const Admin: React.FC = () => {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [metrics, setMetrics] = useState({ totalUsers: 0, totalOrders: 0, revenue: 0 });
+
+    // Estado do Modal de Saldo
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+    const [amountToAdd, setAmountToAdd] = useState('');
+    const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        checkAdminAndLoadData();
+    }, []);
+
+    const checkAdminAndLoadData = async () => {
+        try {
+            // 1. Verificação de Segurança Hardcoded
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email !== 'brunomeueditor@gmail.com') {
+                navigate('/dashboard'); // Chuta quem não é o chefe
+                return;
+            }
+
+            // 2. Carregar Usuários (Profiles)
+            const { data: profiles, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (profileError) throw profileError;
+            // 3. Carregar Métricas (Contagem simples para evitar lentidão)
+            const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+
+            // Simulação de receita (soma real exigiria uma query pesada, vamos estimar ou somar no front se forem poucos)
+            // Para MVP, vamos focar nos usuários
+            setUsers(profiles || []);
+            setMetrics({
+                totalUsers: profiles?.length || 0,
+                totalOrders: ordersCount || 0,
+                revenue: 15240 // Valor fixo ilustrativo do print, ou implemente soma real depois
+            });
+        } catch (error) {
+            console.error('Erro ao carregar admin:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddBalance = async () => {
+        if (!selectedUser || !amountToAdd) return;
+        const valor = parseFloat(amountToAdd.replace(',', '.')); // Aceita vírgula
+        if (isNaN(valor) || valor <= 0) return alert('Valor inválido');
+
+        const confirmacao = window.confirm(`ATENÇÃO: Você vai adicionar R$ ${valor.toFixed(2)} para ${selectedUser.full_name || 'Usuário'}.\n\nConfirma?`);
+        if (!confirmacao) return;
+        setProcessing(true);
+        try {
+            const novoSaldo = (selectedUser.balance || 0) + valor;
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ balance: novoSaldo })
+                .eq('id', selectedUser.id);
+            if (error) throw error;
+            // Recarregar lista
+            checkAdminAndLoadData();
+            setIsModalOpen(false);
+            setAmountToAdd('');
+            alert('Saldo adicionado com sucesso!');
+        } catch (err: any) {
+            alert('Erro ao adicionar saldo: ' + err.message);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    if (loading) return <div className="text-white p-10">Carregando painel blindado...</div>;
+
     return (
-        <div className="max-w-[1400px] mx-auto space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-4 border-b border-border-dark pb-6">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider">Modo Administrador</span>
-                    </div>
-                    <h2 className="text-3xl font-black text-white">Painel de Controle</h2>
-                    <p className="text-text-secondary">Visão geral financeira e gerenciamento de usuários do SocialPrime.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="h-10 px-4 rounded-lg bg-card-dark border border-border-dark hover:bg-white/5 text-white text-sm font-bold flex items-center gap-2 transition-colors">
-                        <span className="material-symbols-outlined text-[18px]">settings</span>
-                        Configurações
-                    </button>
-                </div>
-            </div>
-
-            {/* Admin Stats */}
+        <div className="space-y-6">
+            {/* Cards de Métricas (Estilo do Print) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Profit */}
-                <div className="bg-gradient-to-br from-[#161E2E] to-[#0B1120] p-6 rounded-xl border border-border-dark shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <span className="material-symbols-outlined text-6xl text-emerald-500">attach_money</span>
-                    </div>
-                    <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Lucro Real (Líquido)</p>
-                    <h3 className="text-4xl font-black text-white mt-2">R$ 15.240,00</h3>
-                    <div className="flex items-center gap-2 mt-4 text-sm">
-                        <span className="text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">+18%</span>
-                        <span className="text-text-secondary">este mês</span>
-                    </div>
-                </div>
-
-                {/* Total Users */}
-                <div className="bg-card-dark p-6 rounded-xl border border-border-dark shadow-sm">
+                {/* Card Lucro */}
+                <div className="bg-white dark:bg-[#1c2732] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Total Usuários</p>
-                            <h3 className="text-3xl font-bold text-white mt-2">3,450</h3>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase">Lucro Real (Líquido)</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">R$ {metrics.revenue.toLocaleString('pt-BR')}</h3>
+                            <span className="inline-block mt-2 text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded">+18% este mês</span>
                         </div>
-                        <div className="p-2 bg-primary/20 rounded-lg text-primary">
-                            <span className="material-symbols-outlined">group</span>
+                        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                            <span className="material-symbols-outlined text-green-500">attach_money</span>
                         </div>
                     </div>
-                    <p className="text-sm text-text-secondary mt-4">15 novos registros hoje</p>
                 </div>
-
-                {/* Total Orders */}
-                <div className="bg-card-dark p-6 rounded-xl border border-border-dark shadow-sm">
+                {/* Card Usuários */}
+                <div className="bg-white dark:bg-[#1c2732] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-bold text-text-secondary uppercase tracking-wider">Total Pedidos</p>
-                            <h3 className="text-3xl font-bold text-white mt-2">152,890</h3>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase">Total Usuários</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{metrics.totalUsers}</h3>
+                            <span className="inline-block mt-2 text-xs font-medium text-slate-500">Cadastrados na plataforma</span>
                         </div>
-                        <div className="p-2 bg-purple-500/20 rounded-lg text-purple-500">
-                            <span className="material-symbols-outlined">shopping_bag</span>
+                        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                            <span className="material-symbols-outlined text-blue-500">group</span>
                         </div>
                     </div>
-                    <p className="text-sm text-text-secondary mt-4">98% completados com sucesso</p>
+                </div>
+                {/* Card Pedidos */}
+                <div className="bg-white dark:bg-[#1c2732] p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase">Total Pedidos</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{metrics.totalOrders}</h3>
+                            <span className="inline-block mt-2 text-xs font-medium text-purple-500">Processados pelo sistema</span>
+                        </div>
+                        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                            <span className="material-symbols-outlined text-purple-500">shopping_bag</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            {/* Users Table */}
-            <div className="bg-card-dark rounded-xl border border-border-dark shadow-sm overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-border-dark flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-white">Gerenciar Usuários</h3>
-                    <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-[18px]">search</span>
-                        <input className="pl-9 pr-4 py-2 bg-background-dark border border-border-dark rounded-lg text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="Buscar email..." />
-                    </div>
+            {/* Tabela de Usuários */}
+            <div className="bg-white dark:bg-[#1c2732] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Gerenciar Usuários</h3>
+                    <input type="text" placeholder="Buscar email..." className="bg-slate-100 dark:bg-slate-900 border-none rounded-lg px-4 py-2 text-sm text-white focus:ring-2 focus:ring-primary" />
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-[#111827] text-text-secondary font-medium">
+                        <thead className="bg-slate-50 dark:bg-[#151e29] text-slate-500 dark:text-slate-400">
                             <tr>
-                                <th className="px-6 py-4">Usuário</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Saldo</th>
-                                <th className="px-6 py-4">Gasto Total</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                                <th className="px-6 py-4 font-medium">Usuário / ID</th>
+                                <th className="px-6 py-4 font-medium">Saldo Atual</th>
+                                <th className="px-6 py-4 font-medium text-right">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-dark text-white">
-                            <tr className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 font-bold">carlos_mkt</td>
-                                <td className="px-6 py-4 text-text-secondary">carlos@email.com</td>
-                                <td className="px-6 py-4 text-emerald-400 font-mono">R$ 150,00</td>
-                                <td className="px-6 py-4 font-mono">R$ 4,500.00</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">Ativo</span></td>
-                                <td className="px-6 py-4 text-right">
-                                    <button className="text-text-secondary hover:text-white"><span className="material-symbols-outlined">edit</span></button>
-                                </td>
-                            </tr>
-                            <tr className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 font-bold">agencia_top</td>
-                                <td className="px-6 py-4 text-text-secondary">contato@agenciatop.com</td>
-                                <td className="px-6 py-4 text-emerald-400 font-mono">R$ 1,250.00</td>
-                                <td className="px-6 py-4 font-mono">R$ 12,800.00</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">Ativo</span></td>
-                                <td className="px-6 py-4 text-right">
-                                    <button className="text-text-secondary hover:text-white"><span className="material-symbols-outlined">edit</span></button>
-                                </td>
-                            </tr>
-                            <tr className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 font-bold">spam_bot</td>
-                                <td className="px-6 py-4 text-text-secondary">bot@fake.com</td>
-                                <td className="px-6 py-4 text-emerald-400 font-mono">R$ 0,00</td>
-                                <td className="px-6 py-4 font-mono">R$ 0.00</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 rounded bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20">Banido</span></td>
-                                <td className="px-6 py-4 text-right">
-                                    <button className="text-text-secondary hover:text-white"><span className="material-symbols-outlined">edit</span></button>
-                                </td>
-                            </tr>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                            {users.map((user) => (
+                                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="font-medium text-slate-900 dark:text-white">{user.full_name || 'Sem nome'}</div>
+                                        <div className="text-xs text-slate-500">{user.id}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`font-bold ${user.balance > 0 ? 'text-green-500' : 'text-slate-500'}`}>
+                                            R$ {user.balance?.toFixed(2) || '0.00'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button
+                                            onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
+                                            className="text-slate-400 hover:text-primary transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                                            title="Adicionar Saldo"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
             </div>
+            {/* Modal de Adicionar Saldo */}
+            {isModalOpen && selectedUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-[#1c2732] rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-2">Adicionar Saldo</h3>
+                        <p className="text-slate-400 text-sm mb-6">
+                            Para: <span className="text-white font-medium">{selectedUser.full_name}</span>
+                            <br />ID: <span className="text-xs font-mono">{selectedUser.id}</span>
+                        </p>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1">Valor a adicionar (R$)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={amountToAdd}
+                                    onChange={(e) => setAmountToAdd(e.target.value)}
+                                    placeholder="Ex: 50.00"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none text-lg font-bold"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleAddBalance}
+                                    disabled={processing}
+                                    className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                                >
+                                    {processing ? 'Salvando...' : 'Confirmar Depósito'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
