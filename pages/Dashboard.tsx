@@ -239,7 +239,7 @@ const Dashboard: React.FC = () => {
                                 orders.map(order => (
                                     <tr key={order.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4 text-text-secondary">#{order.id}</td>
-                                        <td className="px-6 py-4 font-medium">{order.service_name || 'Serviço Personalizado'}</td>
+                                        <td className="px-6 py-4 font-medium">{order.service || 'Serviço Indefinido'}</td>
                                         <td className="px-6 py-4 text-primary truncate max-w-[150px]">
                                             <a href={order.link} target="_blank" rel="noopener noreferrer" className="hover:underline">{order.link}</a>
                                         </td>

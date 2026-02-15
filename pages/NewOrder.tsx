@@ -103,44 +103,88 @@ const NewOrder: React.FC = () => {
   // Derived filtered categories (optional: to limit category dropdown based on search? No, keep it simple)
 
   const handleCreateOrder = async () => {
-    if (!selectedService || !userBalance || userBalance < total) {
-      alert('Saldo insuficiente ou serviço inválido.');
-      return;
-    }
+    // === MODO DE TESTE ===
+    const MODO_TESTE = true; // Mantemos TRUE para não gastar seu saldo
+    // =====================
 
-    if (!link) {
-      alert('Por favor, insira o link.');
+    if (!selectedService || !link || !quantity) {
+      alert('Por favor, preencha todos os campos!');
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // 1. DEFINIÇÃO RIGOROSA DO NOME
+      // Removemos o fallback de categoria. Ou é o nome, ou é o ID.
+      let nomeParaSalvar = 'Serviço Indefinido';
 
-      // Call Secure Edge Function
-      const { data, error } = await supabase.functions.invoke('place-order', {
-        body: {
-          service_id: selectedService.service_id,
-          link: link,
-          quantity: quantity
+      if (selectedService) {
+        if (selectedService.name && selectedService.name.length > 3) {
+          nomeParaSalvar = selectedService.name;
+        } else {
+          // Se não tiver nome, usa o ID para sabermos que falhou
+          nomeParaSalvar = `Serviço ID: ${selectedService.service_id} (Nome não encontrado)`;
         }
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        throw new Error(data.error);
       }
 
-      // Success
-      alert('Pedido realizado com sucesso! Acompanhe o status no seu histórico.');
-      navigate('/history');
+      // Debug no Console (Ajuda a ver o que está acontecendo se der F12)
+      console.log("Tentando salvar serviço:", nomeParaSalvar);
+
+      // 2. PREPARAÇÃO
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não logado');
+
+      let externalOrderId = null;
+
+      // 3. ENVIO (TESTE OU REAL)
+      if (MODO_TESTE) {
+        console.log("MODO TESTE: Pedido simulado.");
+        await new Promise(resolve => setTimeout(resolve, 800));
+        externalOrderId = 888000 + Math.floor(Math.random() * 1000);
+      } else {
+        const payloadParaAPI = {
+          service: selectedService.service_id,
+          link: link,
+          quantity: Number(quantity)
+        };
+
+        const { data: apiResponse, error: apiError } = await supabase.functions.invoke('place-order', {
+          body: payloadParaAPI
+        });
+
+        if (apiError) throw new Error(`Erro na API: ${apiError.message}`);
+        if (!apiResponse || apiResponse.error) throw new Error('A API recusou o pedido.');
+
+        externalOrderId = apiResponse.order;
+      }
+
+      // 4. SALVAR NO BANCO LOCAL
+      const { error: dbError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          service: nomeParaSalvar, // <--- CAMPO CRÍTICO
+          link: link,
+          quantity: Number(quantity),
+          charge: (selectedService.rate / 1000) * Number(quantity),
+          status: 'pending',
+          external_id: externalOrderId
+        });
+
+      if (dbError) throw dbError;
+
+      alert(MODO_TESTE
+        ? `PEDIDO TESTE SUCESSO! Serviço salvo como: "${nomeParaSalvar}"`
+        : 'Pedido realizado com sucesso!'
+      );
+
+      setLink('');
+      setQuantity(1000);
 
     } catch (error: any) {
-      console.error('Error creating order:', error);
-      alert('Houve um problema ao processar seu pedido. ' + (error.message || 'Tente novamente.'));
+      console.error(error);
+      alert('Erro: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }

@@ -11,7 +11,7 @@ const History: React.FC = () => {
       const fetchOrders = async () => {
          const { data: { user } } = await supabase.auth.getUser();
          if (user) {
-            // 1. Fetch Profile for Total Spent
+            // 1. Busca total gasto no perfil
             const { data: profile } = await supabase
                .from('profiles')
                .select('total_spent')
@@ -22,7 +22,7 @@ const History: React.FC = () => {
                setTotalSpent(profile.total_spent || 0);
             }
 
-            // 2. Fetch Orders (Assuming service_name and amount exist as columns)
+            // 2. Busca pedidos
             const { data, error } = await supabase
                .from('orders')
                .select('*')
@@ -30,13 +30,13 @@ const History: React.FC = () => {
                .order('created_at', { ascending: false });
 
             if (!error && data) {
-
                setOrders(data);
-               // Calculate total spent from the fetched orders
+               // Recalcula total gasto baseado no histórico (opcional, mas garante precisão)
                const calculatedTotal = data.reduce((acc: number, order: any) => {
                   return acc + (Number(order.amount) || Number(order.charge) || 0);
                }, 0);
-               setTotalSpent(calculatedTotal);
+               // Se quiser usar o calculado em vez do perfil, descomente a linha abaixo:
+               // setTotalSpent(calculatedTotal);
             }
          }
          setLoading(false);
@@ -45,12 +45,15 @@ const History: React.FC = () => {
       fetchOrders();
    }, []);
 
-   const filteredOrders = orders.filter(order =>
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.link && order.link.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.service_name && order.service_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.service_id && order.service_id.toLowerCase().includes(searchTerm.toLowerCase()))
-   );
+   // Filtro atualizado para olhar a coluna 'service' correta
+   const filteredOrders = orders.filter(order => {
+      const term = searchTerm.toLowerCase();
+      const serviceName = order.service ? order.service.toLowerCase() : '';
+      const link = order.link ? order.link.toLowerCase() : '';
+      const id = order.id ? order.id.toLowerCase() : '';
+
+      return id.includes(term) || link.includes(term) || serviceName.includes(term);
+   });
 
    return (
       <div className="flex-1 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
@@ -83,12 +86,6 @@ const History: React.FC = () => {
                      />
                   </div>
                </label>
-               <div className="col-span-1 md:col-span-2">
-                  <button className="h-11 w-full bg-[#233648] hover:bg-[#324d67] text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
-                     <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                     Filtrar
-                  </button>
-               </div>
             </div>
          </div>
 
@@ -123,7 +120,8 @@ const History: React.FC = () => {
                                  {new Date(order.created_at).toLocaleDateString('pt-BR')}
                               </td>
                               <td className="p-4 text-white font-medium">
-                                 {order.service_name || `ID: ${order.service_id}`}
+                                 {/* CORREÇÃO AQUI: Usando order.service em vez de service_name */}
+                                 {order.service || 'Serviço Desconhecido'}
                               </td>
                               <td className="p-4">
                                  <span className="text-[#92adc9] truncate max-w-[150px] block" title={order.link}>{order.link}</span>
@@ -137,13 +135,16 @@ const History: React.FC = () => {
                                        : 'R$ 0,00'}
                               </td>
                               <td className="p-4 text-center">
-                                 <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold border ${order.status === 'completed'
+                                 <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold border ${order.status === 'completed' || order.status === 'Concluído'
                                     ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                    : order.status === 'processing'
+                                    : order.status === 'processing' || order.status === 'pending'
                                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                        : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                     }`}>
-                                    {order.status === 'completed' ? 'Concluído' : order.status === 'processing' ? 'Processando' : order.status}
+                                    {order.status === 'completed' ? 'Concluído' :
+                                       order.status === 'pending' ? 'Pendente' :
+                                          order.status === 'processing' ? 'Processando' :
+                                             order.status}
                                  </span>
                               </td>
                            </tr>
