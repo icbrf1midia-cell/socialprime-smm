@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+// ============================================================================
+// 🚨 INTERRUPTOR DO MODO DE TESTE (LIGA/DESLIGA AQUI) 🚨
+// ============================================================================
+// true  = MODO TESTE (Simula o pedido, NÃO gasta saldo, cria ID fake)
+// false = MODO REAL  (Envia para a API, GASTA seu saldo de verdade)
+// ============================================================================
+const MODO_TESTE = true;
+// ============================================================================
+
 interface Service {
   service_id: number;
   name: string;
@@ -103,9 +112,7 @@ const NewOrder: React.FC = () => {
   // Derived filtered categories (optional: to limit category dropdown based on search? No, keep it simple)
 
   const handleCreateOrder = async () => {
-    // === MODO DE TESTE ===
-    const MODO_TESTE = true; // Mantemos TRUE para não gastar seu saldo
-    // =====================
+    // O MODO_TESTE AGORA É LIDO LÁ DO TOPO DO ARQUIVO 👆
 
     if (!selectedService || !link || !quantity) {
       alert('Por favor, preencha todos os campos!');
