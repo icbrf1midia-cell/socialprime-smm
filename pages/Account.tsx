@@ -176,19 +176,22 @@ const Account: React.FC = () => {
                         <p className="text-sm text-text-secondary">{profile?.email}</p>
                     </div>
 
-                    {/* Balance Card */}
-                    <div className="bg-gradient-to-br from-primary/20 to-purple-600/20 p-6 rounded-xl border border-primary/20 relative overflow-hidden">
-                        <p className="text-sm font-bold text-gray-300 uppercase tracking-wider">Saldo Disponível</p>
-                        <h3 className="text-3xl font-black text-white mt-2">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profile?.balance || 0)}
-                        </h3>
-                        <div className="mt-4">
-                            <Link to="/add-funds" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors">
-                                <span className="material-symbols-outlined">add_card</span>
-                                Adicionar Saldo
-                            </Link>
+
+                    {/* Balance Card - Hidden for Admin */}
+                    {profile?.email !== 'brunomeueditor@gmail.com' && (
+                        <div className="bg-gradient-to-br from-primary/20 to-purple-600/20 p-6 rounded-xl border border-primary/20 relative overflow-hidden">
+                            <p className="text-sm font-bold text-gray-300 uppercase tracking-wider">Saldo Disponível</p>
+                            <h3 className="text-3xl font-black text-white mt-2">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profile?.balance || 0)}
+                            </h3>
+                            <div className="mt-4">
+                                <Link to="/add-funds" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors">
+                                    <span className="material-symbols-outlined">add_card</span>
+                                    Adicionar Saldo
+                                </Link>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Right Column: Personal Info Form */}
