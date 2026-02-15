@@ -13,6 +13,7 @@ import Account from './pages/Account';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import HomeLanding from './pages/HomeLanding';
 import AddFunds from './pages/AddFunds';
 import Admin from './pages/Admin';
 
@@ -100,7 +101,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const LayoutHandler: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/register" replace />} />
+      <Route path="/" element={<HomeLanding />} />
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
