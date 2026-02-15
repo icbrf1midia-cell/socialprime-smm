@@ -140,17 +140,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
                 {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-                    <NavItem to="/" icon="dashboard" label="Dashboard" />
-                    {profile?.email === 'brunomeueditor@gmail.com' && (
-                        <NavItem to="/admin" icon="admin_panel_settings" label="Painel Admin" />
+                    {/* Dashboard Logic */}
+                    {profile?.email === 'brunomeueditor@gmail.com' ? (
+                        <NavItem to="/admin" icon="dashboard" label="Dashboard" />
+                    ) : (
+                        <NavItem to="/" icon="dashboard" label="Dashboard" />
                     )}
+
+                    {/* Client Only Links */}
                     {profile?.email !== 'brunomeueditor@gmail.com' && (
                         <>
                             <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
                             <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
                             <NavItem to="/history" icon="history" label="Histórico" />
+                            {/* ApiConfig was not in previous sidebar read but user asked to hide it if present. 
+                                Based on previous files, there is no ApiConfig link in Sidebar unless I missed it. 
+                                But I will add it if it was there. Checking context... 
+                                Context step 557 Sidebar content does NOT show ApiConfig link.
+                                Context step 607 Sidebar content also does NOT show ApiConfig link.
+                                So I won't add hiding logic for a link that doesn't exist.
+                            */}
                         </>
                     )}
+
+                    {/* Common Links */}
                     <NavItem to="/account" icon="person" label="Minha Conta" />
                     <NavItem to="/notifications" icon="notifications" label="Notificações" badge={unreadCount} />
                 </nav>

@@ -56,6 +56,31 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+
+
+// Admin Route Component
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAdmin(session?.user.email === 'brunomeueditor@gmail.com');
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <LoadingScreen />;
+
+  if (!session || !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -97,7 +122,11 @@ const LayoutHandler: React.FC = () => {
               <Route path="/api" element={<ApiConfig />} />
               <Route path="/account" element={<Account />} />
               <Route path="/notifications" element={<Notifications />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              } />
               <Route path="/services" element={<div className="p-10 text-center text-text-secondary">Página de Serviços (Em construção)</div>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
