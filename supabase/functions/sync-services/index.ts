@@ -8,13 +8,37 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-    // 1. Handle CORS (Permite que o site chame a função)
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
     try {
-        const { api_url, api_key, margin } = await req.json()
+        // 1. Inicializa Supabase Admin (Para ler configurações protegidas)
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+
+        // 2. Tenta ler do corpo da requisição (se vier do frontend)
+        let { api_url, api_key, margin } = await req.json().catch(() => ({}))
+
+        // 3. Se não veio na requisição (ex: Cron Job), busca no Banco
+        if (!api_url || !api_key) {
+            console.log("Configuração não enviada. Buscando no banco de dados...")
+
+            const { data: config, error: configError } = await supabase
+                .from('system_config')
+                .select('*')
+                .single()
+
+            if (configError || !config) {
+                throw new Error('Nenhuma configuração encontrada no banco de dados.')
+            }
+
+            api_url = config.api_url
+            api_key = config.api_key
+            margin = config.global_profit_margin
+        }
 
         if (!api_url || !api_key) {
             throw new Error('Configuração incompleta (URL ou Key faltando).')
@@ -22,7 +46,7 @@ serve(async (req) => {
 
         console.log(`Iniciando sincronização com: ${api_url} (Margem: ${margin}%)`)
 
-        // 2. Busca Serviços no Fornecedor (Padrão SMM - Action: services)
+        // 4. Busca Serviços no Fornecedor
         const params = new URLSearchParams();
         params.append('key', api_key);
         params.append('action', 'services');
@@ -37,37 +61,28 @@ serve(async (req) => {
 
         if (!Array.isArray(providerServices)) {
             console.error('Erro Fornecedor:', providerServices);
-            throw new Error('A API do fornecedor não retornou uma lista válida. Verifique a Chave API.');
+            throw new Error('A API do fornecedor não retornou uma lista válida.');
         }
 
-        // 3. Processa e Calcula Preços
+        // 5. Processa e Calcula Preços
         const servicesToUpsert = providerServices.map((s: any) => {
-            const cost = parseFloat(s.rate); // Custo por 1000
+            const cost = parseFloat(s.rate);
             const profitMargin = Number(margin) || 0;
-
-            // Preço Final = Custo + (Custo * Porcentagem)
             const finalPrice = cost + (cost * (profitMargin / 100));
 
             return {
                 service_id: Number(s.service),
                 name: s.name,
                 category: s.category,
-                rate: Number(finalPrice.toFixed(2)), // Arredonda para 2 casas
+                rate: Number(finalPrice.toFixed(2)),
                 min: Number(s.min),
                 max: Number(s.max),
                 type: s.type,
-                // Mantém a descrição se existir, senão põe um padrão
-                description: s.description || 'Serviço importado automaticamente.'
+                description: s.description || 'Importado automaticamente.'
             }
         });
 
-        // 4. Salva no Supabase (Upsert: Atualiza se existir, Cria se não)
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
-
-        // Insere em lotes para não travar se forem muitos serviços
+        // 6. Salva no Supabase
         const { error } = await supabase
             .from('services')
             .upsert(servicesToUpsert, { onConflict: 'service_id' })
@@ -75,7 +90,7 @@ serve(async (req) => {
         if (error) throw error;
 
         return new Response(
-            JSON.stringify({ success: true, count: servicesToUpsert.length }),
+            JSON.stringify({ success: true, count: servicesToUpsert.length, source: 'database_config' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
 
