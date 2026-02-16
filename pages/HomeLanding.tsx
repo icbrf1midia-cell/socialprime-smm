@@ -180,7 +180,7 @@ const HomeLanding: React.FC = () => {
 
                     {/* ASTRONAUTA FLUTUANTE (Decoração) */}
                     <img
-                        src="https://images.pexels.com/photos/41006/satellite-soyuz-spaceship-station-41006.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+                        src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Bruce_McCandless_II_during_EVA_in_1984.jpg"
                         alt="Astronaut"
                         className="absolute top-0 right-0 md:right-10 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0 grayscale-[0.2]"
                     />
