@@ -182,7 +182,7 @@ const HomeLanding: React.FC = () => {
                     <img
                         src="/astronauta-01.png"
                         alt="Astronaut"
-                        className="absolute top-0 right-0 md:right-10 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0"
+                        className="absolute -top-40 right-0 md:right-80 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0"
                     />
 
                     {/* Texto Hero */}
@@ -300,7 +300,7 @@ const HomeLanding: React.FC = () => {
             {/* --- MÉTODO SEGURO --- */}
             <section id="metodo" className="py-24 relative border-b border-white/5 scroll-mt-24 z-10 overflow-hidden">
                 {/* ASTRONAUTA 02 */}
-                <img src="/astronauta-02.png" alt="Astronaut" className="absolute -left-20 top-20 w-[200px] md:w-[400px] opacity-60 mix-blend-screen pointer-events-none animate-float" />
+                <img src="/astronauta-02.png" alt="Astronaut" className="absolute -left-10 md:left-0 top-20 w-[200px] md:w-[400px] opacity-60 mix-blend-screen pointer-events-none animate-float" />
 
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16 reveal">
@@ -373,7 +373,7 @@ const HomeLanding: React.FC = () => {
             {/* --- CTA FINAL --- */}
             <section className="py-32 text-center px-6 relative overflow-hidden z-10">
                 {/* ASTRONAUTA 03 */}
-                <img src="/astronauta-03.png" alt="Astronaut" className="absolute bottom-10 -right-10 md:right-10 w-[150px] md:w-[300px] opacity-50 mix-blend-screen pointer-events-none animate-float-slow rotate-12" />
+                <img src="/astronauta-03.png" alt="Astronaut" className="absolute bottom-32 -right-10 md:right-10 w-[150px] md:w-[300px] opacity-50 mix-blend-screen pointer-events-none animate-float-slow rotate-12" />
 
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full -z-10"></div>
                 <h2 className="text-4xl md:text-6xl font-black text-white mb-8 drop-shadow-xl reveal">Sua Autoridade Começa Agora.</h2>
