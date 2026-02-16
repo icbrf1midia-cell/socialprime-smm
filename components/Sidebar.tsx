@@ -90,8 +90,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     };
 
     const handleLogout = async () => {
+        // 1. Limpa estado local primeiro para feedback visual rápido
+        setProfile(null);
+
+        // 2. Faz o logout no Supabase
         await supabase.auth.signOut();
-        navigate('/login');
+
+        // 3. Pequeno delay para garantir que a sessão foi destruída
+        setTimeout(() => {
+            navigate('/', { replace: true });
+        }, 100);
     };
 
     const isActive = (path: string) => location.pathname === path;
@@ -130,7 +138,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     } flex flex-col`}
             >
                 {/* Logo Area */}
-                {/* Logo Area */}
                 <div className="p-6 border-b border-border-dark flex flex-col items-center gap-4 relative">
                     <img src="/logo.png" alt="SocialPrime" className="h-28 w-auto" />
                     <button onClick={onClose} className="lg:hidden absolute top-6 right-6 text-text-secondary hover:text-white">
@@ -153,13 +160,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             <NavItem to="/new-order" icon="add_shopping_cart" label="Novo Pedido" />
                             <NavItem to="/add-funds" icon="attach_money" label="Adicionar Saldo" />
                             <NavItem to="/history" icon="history" label="Histórico" />
-                            {/* ApiConfig was not in previous sidebar read but user asked to hide it if present. 
-                                Based on previous files, there is no ApiConfig link in Sidebar unless I missed it. 
-                                But I will add it if it was there. Checking context... 
-                                Context step 557 Sidebar content does NOT show ApiConfig link.
-                                Context step 607 Sidebar content also does NOT show ApiConfig link.
-                                So I won't add hiding logic for a link that doesn't exist.
-                            */}
                         </>
                     )}
 
@@ -187,8 +187,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             </div>
                         </div>
                     )}
-
-
 
                     <button
                         onClick={handleLogout}
