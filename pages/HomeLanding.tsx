@@ -182,7 +182,7 @@ const HomeLanding: React.FC = () => {
                     <img
                         src="/astronauta-01.png"
                         alt="Astronaut"
-                        className="absolute -top-40 right-0 md:right-80 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0"
+                        className="absolute -top-40 right-0 md:right-96 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0"
                     />
 
                     {/* Texto Hero */}
@@ -300,7 +300,7 @@ const HomeLanding: React.FC = () => {
             {/* --- MÉTODO SEGURO --- */}
             <section id="metodo" className="py-24 relative border-b border-white/5 scroll-mt-24 z-10 overflow-hidden">
                 {/* ASTRONAUTA 02 */}
-                <img src="/astronauta-02.png" alt="Astronaut" className="absolute -left-10 md:left-0 top-20 w-[200px] md:w-[400px] opacity-60 mix-blend-screen pointer-events-none animate-float" />
+                <img src="/astronauta-02.png" alt="Astronaut" className="absolute -left-10 md:left-0 top-20 w-[200px] md:w-[400px] opacity-100 mix-blend-screen pointer-events-none animate-float" />
 
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16 reveal">
