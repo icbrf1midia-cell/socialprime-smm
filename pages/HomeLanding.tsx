@@ -70,12 +70,7 @@ const HomeLanding: React.FC = () => {
             <nav className="fixed top-0 left-0 w-full z-50 bg-[#050505]/80 backdrop-blur-md border-b border-white/5">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-tr from-primary to-blue-600 p-2 rounded-lg shadow-lg shadow-primary/20">
-                            <span className="material-symbols-outlined text-white">rocket_launch</span>
-                        </div>
-                        <h1 className="text-xl md:text-2xl font-black tracking-tighter text-white">
-                            Social<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">Prime</span>
-                        </h1>
+                        <img src="/logo.png" alt="SocialPrime" className="h-10 w-auto object-contain" />
                     </div>
                     <div className="flex items-center gap-6">
                         <a href="#como-funciona" className="hidden md:block text-sm font-medium text-slate-400 hover:text-white transition-colors">Como funciona</a>
@@ -144,7 +139,7 @@ const HomeLanding: React.FC = () => {
                     {/* Direita: O Formulário de Conversão (Glassmorphism) */}
                     <div className="lg:col-span-5 relative z-10">
                         {/* Elementos decorativos flutuantes */}
-                        <div className="absolute -top-10 -right-10 bg-[#1a1a1a] p-3 rounded-xl border border-white/10 shadow-2xl animate-bounce duration-[3000ms] hidden md:block">
+                        <div className="absolute -top-6 -right-4 md:-right-8 bg-[#1a1a1a] p-3 rounded-xl border border-white/10 shadow-2xl animate-bounce duration-[3000ms] hidden md:block z-20">
                             <div className="flex items-center gap-3">
                                 <div className="bg-pink-500/20 p-2 rounded-lg text-pink-500"><span className="material-symbols-outlined">favorite</span></div>
                                 <div>
@@ -224,8 +219,67 @@ const HomeLanding: React.FC = () => {
                 </div>
             </div>
 
+            {/* --- NOVA SEÇÃO: COMO FUNCIONA (STEP BY STEP) --- */}
+            <section id="como-funciona" className="py-24 relative overflow-hidden">
+                {/* Background Grid Effect */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="text-center mb-16">
+                        <span className="text-primary font-bold tracking-widest text-xs uppercase mb-2 block">Processo Simplificado</span>
+                        <h2 className="text-3xl md:text-5xl font-black text-white">
+                            Domine o Jogo em <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">3 Passos</span>
+                        </h2>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8 relative">
+                        {/* Linha conectora (visível só em Desktop) */}
+                        <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent -z-10"></div>
+
+                        {/* Passo 1 */}
+                        <div className="group relative bg-[#0a0a0a] border border-white/5 hover:border-primary/50 p-8 rounded-2xl transition-all hover:-translate-y-2 duration-300">
+                            <div className="w-16 h-16 bg-[#161616] rounded-full border border-white/10 flex items-center justify-center text-2xl font-black text-white mb-6 group-hover:bg-primary group-hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-all relative z-10">
+                                1
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-3">Escolha sua Arma</h3>
+                            <p className="text-slate-400 leading-relaxed text-sm">
+                                Acesse nosso arsenal com mais de 500 serviços. De seguidores brasileiros a curtidas automáticas. Selecione exatamente o que seu perfil precisa para destravar.
+                            </p>
+                        </div>
+
+                        {/* Passo 2 */}
+                        <div className="group relative bg-[#0a0a0a] border border-white/5 hover:border-primary/50 p-8 rounded-2xl transition-all hover:-translate-y-2 duration-300">
+                            <div className="w-16 h-16 bg-[#161616] rounded-full border border-white/10 flex items-center justify-center text-2xl font-black text-white mb-6 group-hover:bg-primary group-hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-all relative z-10">
+                                2
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-3">Ativação Instantânea</h3>
+                            <p className="text-slate-400 leading-relaxed text-sm">
+                                Defina a quantidade e cole o link do seu post ou perfil. Nosso sistema API conecta diretamente com as redes sociais. Sem senhas, sem burocracia.
+                            </p>
+                        </div>
+
+                        {/* Passo 3 */}
+                        <div className="group relative bg-[#0a0a0a] border border-white/5 hover:border-primary/50 p-8 rounded-2xl transition-all hover:-translate-y-2 duration-300">
+                            <div className="w-16 h-16 bg-[#161616] rounded-full border border-white/10 flex items-center justify-center text-2xl font-black text-white mb-6 group-hover:bg-primary group-hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-all relative z-10">
+                                3
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-3">Assista à Decolagem</h3>
+                            <p className="text-slate-400 leading-relaxed text-sm">
+                                Em segundos, os números começam a subir. A prova social atrai pessoas reais, o algoritmo te nota e sua autoridade se consolida. Você foca no conteúdo, nós no tráfego.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 text-center">
+                        <a href="#top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 text-primary font-bold hover:text-white transition-colors cursor-pointer">
+                            Começar agora mesmo <span className="material-symbols-outlined">arrow_upward</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
             {/* --- O PROBLEMA VS A SOLUÇÃO --- */}
-            <section id="como-funciona" className="py-24 px-6">
+            <section className="py-24 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-black text-white mb-4">A Verdade Sobre o <span className="text-primary">Crescimento</span></h2>
