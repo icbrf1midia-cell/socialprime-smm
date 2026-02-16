@@ -180,9 +180,9 @@ const HomeLanding: React.FC = () => {
 
                     {/* ASTRONAUTA FLUTUANTE (Decoração) */}
                     <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Bruce_McCandless_II_during_EVA_in_1984.jpg"
+                        src="/astronauta-01.png"
                         alt="Astronaut"
-                        className="absolute top-0 right-0 md:right-10 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0 grayscale-[0.2]"
+                        className="absolute top-0 right-0 md:right-10 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0"
                     />
 
                     {/* Texto Hero */}
@@ -298,7 +298,10 @@ const HomeLanding: React.FC = () => {
             </div>
 
             {/* --- MÉTODO SEGURO --- */}
-            <section id="metodo" className="py-24 relative border-b border-white/5 scroll-mt-24 z-10">
+            <section id="metodo" className="py-24 relative border-b border-white/5 scroll-mt-24 z-10 overflow-hidden">
+                {/* ASTRONAUTA 02 */}
+                <img src="/astronauta-02.png" alt="Astronaut" className="absolute -left-20 top-20 w-[200px] md:w-[400px] opacity-60 mix-blend-screen pointer-events-none animate-float" />
+
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16 reveal">
                         <span className="inline-block py-1 px-3 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-4 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
@@ -369,6 +372,9 @@ const HomeLanding: React.FC = () => {
 
             {/* --- CTA FINAL --- */}
             <section className="py-32 text-center px-6 relative overflow-hidden z-10">
+                {/* ASTRONAUTA 03 */}
+                <img src="/astronauta-03.png" alt="Astronaut" className="absolute bottom-10 -right-10 md:right-10 w-[150px] md:w-[300px] opacity-50 mix-blend-screen pointer-events-none animate-float-slow rotate-12" />
+
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full -z-10"></div>
                 <h2 className="text-4xl md:text-6xl font-black text-white mb-8 drop-shadow-xl reveal">Sua Autoridade Começa Agora.</h2>
                 <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="bg-white text-black hover:bg-slate-200 font-black py-5 px-10 rounded-full text-xl shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all hover:scale-105 flex items-center gap-2 mx-auto reveal delay-200">
