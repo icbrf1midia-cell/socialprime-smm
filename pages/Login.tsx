@@ -109,7 +109,7 @@ const Login: React.FC = () => {
         </form>
 
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-          Não tem uma conta? <Link to="/register" className="font-semibold leading-6 text-primary hover:text-primary/80 transition-colors ml-1">Criar conta grátis</Link>
+          Não tem uma conta? <Link to="/" className="font-semibold leading-6 text-primary hover:text-primary/80 transition-colors ml-1">Criar conta grátis</Link>
         </p>
       </div>
     </div>

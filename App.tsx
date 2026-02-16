@@ -104,7 +104,7 @@ const LayoutHandler: React.FC = () => {
       <Route path="/" element={<HomeLanding />} />
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/register" element={<Navigate to="/" replace />} />
 
       {/* Protected Routes */}
       <Route path="/checkout" element={
