@@ -388,6 +388,10 @@ const HomeLanding: React.FC = () => {
                 <div className="flex items-center justify-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
                     <img src="/logo.png" alt="SocialPrime" className="h-8 filter drop-shadow-[0_0_5px_rgba(192,38,211,0.2)]" />
                 </div>
+                <div className="flex justify-center gap-6 mb-4 text-xs font-medium text-slate-500">
+                    <Link to="/terms" className="hover:text-white transition-colors">Termos de Uso</Link>
+                    <Link to="/privacy" className="hover:text-white transition-colors">Política de Privacidade</Link>
+                </div>
                 <p className="text-slate-600 text-sm">© 2026 SocialPrime. Todos os direitos reservados.</p>
             </footer>
 

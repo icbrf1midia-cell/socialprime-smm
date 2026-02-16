@@ -16,6 +16,8 @@ import Register from './pages/Register';
 import HomeLanding from './pages/HomeLanding';
 import AddFunds from './pages/AddFunds';
 import Admin from './pages/Admin';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 // Loading Component
 const LoadingScreen = () => (
@@ -105,6 +107,8 @@ const LayoutHandler: React.FC = () => {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Navigate to="/" replace />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
 
       {/* Protected Routes */}
       <Route path="/checkout" element={
