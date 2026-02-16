@@ -131,18 +131,14 @@ const HomeLanding: React.FC = () => {
 
             {/* --- BACKGROUND GALÁCTICO --- */}
             <div className="fixed inset-0 pointer-events-none z-0">
-                {/* Nebulosa Roxa Superior */}
-                <div className="absolute -top-[20%] left-[20%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[120px] animate-pulse duration-[8000ms]"></div>
-                {/* Nebulosa Rosa Inferior */}
-                <div className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-pink-900/10 rounded-full blur-[150px]"></div>
-                {/* Nebulosa Azul Esquerda */}
-                <div className="absolute bottom-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[150px]"></div>
+                {/* Imagem de Fundo (Galáxia) */}
+                <div className="absolute inset-0 bg-[url('/bg-galaxy.jpg')] bg-cover bg-center bg-no-repeat opacity-60"></div>
+
+                {/* Overlay Gradiente para suavizar */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#05000a]/80 via-transparent to-[#05000a]/90"></div>
+
                 {/* Grid Overlay */}
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
-                {/* Estrelas (Pontinhos) */}
-                <div className="absolute top-10 left-10 w-1 h-1 bg-white rounded-full opacity-50 animate-pulse"></div>
-                <div className="absolute top-40 right-20 w-1 h-1 bg-white rounded-full opacity-30 animate-pulse"></div>
-                <div className="absolute bottom-20 left-1/3 w-2 h-2 bg-purple-400 rounded-full opacity-40 blur-[1px]"></div>
             </div>
 
             {/* --- NAVBAR --- */}
@@ -183,10 +179,11 @@ const HomeLanding: React.FC = () => {
                 <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16 items-center relative">
 
                     {/* ASTRONAUTA FLUTUANTE (Decoração) */}
-                    <div className="absolute top-0 right-0 -z-10 opacity-30 lg:opacity-60 animate-float-slow pointer-events-none">
-                        {/* Placeholder de Astronauta - Você pode trocar essa URL pela sua imagem IA depois */}
-                        <img src="https://cdn3d.iconscout.com/3d/premium/thumb/astronaut-riding-rocket-4392437-3663785.png" alt="Astronaut" className="w-[300px] md:w-[500px] grayscale-[0.2] drop-shadow-[0_0_50px_rgba(168,85,247,0.3)]" />
-                    </div>
+                    <img
+                        src="https://images.pexels.com/photos/41006/satellite-soyuz-spaceship-station-41006.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+                        alt="Astronaut"
+                        className="absolute top-0 right-0 md:right-10 w-[300px] md:w-[500px] opacity-80 pointer-events-none mix-blend-screen animate-float-slow z-0 grayscale-[0.2]"
+                    />
 
                     {/* Texto Hero */}
                     <div className="lg:col-span-7 text-center lg:text-left space-y-8 relative reveal">
