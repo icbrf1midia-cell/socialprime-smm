@@ -385,8 +385,8 @@ const HomeLanding: React.FC = () => {
 
             {/* --- FOOTER --- */}
             <footer className="py-10 border-t border-white/5 bg-[#05000a] text-center z-10 relative">
-                <div className="flex items-center justify-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
-                    <img src="/logo.png" alt="SocialPrime" className="h-8 filter drop-shadow-[0_0_5px_rgba(192,38,211,0.2)]" />
+                <div className="flex items-center justify-center gap-2 mb-6 opacity-80 hover:opacity-100 transition-opacity">
+                    <img src="/logo.png" alt="SocialPrime" className="h-16 filter drop-shadow-[0_0_10px_rgba(192,38,211,0.3)]" />
                 </div>
                 <div className="flex justify-center gap-6 mb-4 text-xs font-medium text-slate-500">
                     <Link to="/terms" className="hover:text-white transition-colors">Termos de Uso</Link>
