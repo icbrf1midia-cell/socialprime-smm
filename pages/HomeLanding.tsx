@@ -22,6 +22,24 @@ const HomeLanding: React.FC = () => {
         return () => subscription.unsubscribe();
     }, []);
 
+    // --- LÓGICA DE ANIMAÇÃO AO ROLAR (SCROLL REVEAL) ---
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        // Seleciona todos os elementos com a classe 'reveal' ou 'reveal-left'
+        setTimeout(() => {
+            document.querySelectorAll('.reveal, .reveal-left').forEach(el => observer.observe(el));
+        }, 100); // Pequeno delay para garantir que o DOM carregou
+
+        return () => observer.disconnect();
+    }, []);
+
     // --- FUNÇÃO DE ROLAGEM SUAVE ---
     const scrollToSection = (e: React.MouseEvent, id: string) => {
         e.preventDefault();
@@ -69,6 +87,34 @@ const HomeLanding: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[#02040a] text-white overflow-x-hidden font-sans selection:bg-primary/30 selection:text-primary relative">
+
+            {/* --- ESTILOS DE ANIMAÇÃO --- */}
+            <style>{`
+                .reveal {
+                    opacity: 0;
+                    transform: translateY(50px);
+                    transition: all 1s cubic-bezier(0.5, 0, 0, 1);
+                }
+                .reveal.active {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                /* Animação para vir da esquerda */
+                .reveal-left {
+                    opacity: 0;
+                    transform: translateX(-50px);
+                    transition: all 1s cubic-bezier(0.5, 0, 0, 1);
+                }
+                .reveal-left.active {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                /* Atraso para efeito cascata nos cards */
+                .delay-000 { transition-delay: 0s; }
+                .delay-100 { transition-delay: 0.1s; }
+                .delay-200 { transition-delay: 0.2s; }
+                .delay-300 { transition-delay: 0.3s; }
+            `}</style>
 
             {/* --- BACKGROUND GLOBAL COM GRADIENTES --- */}
             <div className="fixed inset-0 pointer-events-none z-0">
@@ -134,7 +180,7 @@ const HomeLanding: React.FC = () => {
                 <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
 
                     {/* Texto Hero */}
-                    <div className="lg:col-span-7 text-center lg:text-left space-y-8 relative">
+                    <div className="lg:col-span-7 text-center lg:text-left space-y-8 relative reveal">
                         {/* Selo Brilhante */}
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-900/30 border border-blue-500/30 backdrop-blur-md text-blue-300 text-xs font-bold uppercase tracking-widest animate-fade-in-up shadow-[0_0_20px_rgba(59,130,246,0.2)]">
                             <span className="relative flex h-2 w-2">
@@ -250,7 +296,7 @@ const HomeLanding: React.FC = () => {
                         { label: 'Serviços Ativos', val: '+500' },
                         { label: 'Suporte', val: '24 Horas' },
                     ].map((stat, i) => (
-                        <div key={i} className="py-10 text-center group cursor-default hover:bg-white/5 transition-colors">
+                        <div key={i} className={`py-10 text-center group cursor-default hover:bg-white/5 transition-colors reveal delay-${i}00`}>
                             <h4 className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 group-hover:to-white transition-colors">{stat.val}</h4>
                             <p className="text-xs font-bold text-blue-500/80 uppercase tracking-widest mt-2">{stat.label}</p>
                         </div>
@@ -261,7 +307,7 @@ const HomeLanding: React.FC = () => {
             {/* --- MÉTODO SEGURO --- */}
             <section id="metodo" className="py-24 relative border-b border-white/5 scroll-mt-24 z-10">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-16 reveal">
                         <span className="inline-block py-1 px-3 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
                             Segurança Blindada
                         </span>
@@ -281,7 +327,7 @@ const HomeLanding: React.FC = () => {
                             { title: "3. Pagamento", desc: "Pague via Pix com aprovação instantânea.", icon: "pix", color: "text-purple-400", bg: "bg-purple-500/10" },
                             { title: "4. Decolagem", desc: "O sistema entrega seu pedido automaticamente.", icon: "rocket_launch", color: "text-pink-400", bg: "bg-pink-500/10" }
                         ].map((card, i) => (
-                            <div key={i} className={`bg-[#0d1526] p-8 rounded-2xl border ${card.border || 'border-white/5'} hover:border-opacity-100 hover:border-white/20 transition-all group relative overflow-hidden hover:-translate-y-2 duration-300 shadow-lg`}>
+                            <div key={i} className={`bg-[#0d1526] p-8 rounded-2xl border ${card.border || 'border-white/5'} hover:border-opacity-100 hover:border-white/20 transition-all group relative overflow-hidden hover:-translate-y-2 duration-300 shadow-lg reveal delay-${i}00`}>
                                 {card.special && <div className="absolute top-0 right-0 bg-emerald-500 text-[#02040a] text-[10px] font-bold px-2 py-1 rounded-bl-lg">ZERO RISCO</div>}
                                 <div className={`w-14 h-14 ${card.bg} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${card.color}`}>
                                     <span className="material-symbols-outlined text-3xl">{card.icon}</span>
@@ -297,7 +343,7 @@ const HomeLanding: React.FC = () => {
             {/* --- COMPARAÇÃO --- */}
             <section className="py-24 px-6 bg-[#02040a] relative z-10">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-16 reveal">
                         <h2 className="text-3xl md:text-5xl font-black text-white mb-4">A Verdade Sobre o <span className="text-blue-500">Crescimento</span></h2>
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                             O algoritmo prioriza quem já tem números. Quebre esse ciclo.
@@ -305,7 +351,8 @@ const HomeLanding: React.FC = () => {
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-[#0f0505] border border-red-500/10 p-10 rounded-3xl relative overflow-hidden group hover:border-red-500/30 transition-all">
+                        {/* Lado Ruim */}
+                        <div className="bg-[#0f0505] border border-red-500/10 p-10 rounded-3xl relative overflow-hidden group hover:border-red-500/30 transition-all reveal-left">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><span className="material-symbols-outlined text-8xl text-red-500">close</span></div>
                             <h3 className="text-2xl font-bold text-red-400 mb-4">O Jeito Tradicional (Lento)</h3>
                             <ul className="space-y-4 text-slate-400">
@@ -314,7 +361,8 @@ const HomeLanding: React.FC = () => {
                             </ul>
                         </div>
 
-                        <div className="bg-[#050a14] border border-blue-500/20 p-10 rounded-3xl relative overflow-hidden shadow-2xl shadow-blue-900/10 group hover:border-blue-500/50 transition-all">
+                        {/* Lado Bom */}
+                        <div className="bg-[#050a14] border border-blue-500/20 p-10 rounded-3xl relative overflow-hidden shadow-2xl shadow-blue-900/10 group hover:border-blue-500/50 transition-all reveal delay-200">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><span className="material-symbols-outlined text-8xl text-blue-500">check</span></div>
                             <h3 className="text-2xl font-bold text-blue-400 mb-4">O Jeito SocialPrime (Smart)</h3>
                             <ul className="space-y-4 text-slate-300">
@@ -329,8 +377,8 @@ const HomeLanding: React.FC = () => {
             {/* --- CTA FINAL --- */}
             <section className="py-32 text-center px-6 relative overflow-hidden z-10">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[150px] rounded-full -z-10"></div>
-                <h2 className="text-4xl md:text-6xl font-black text-white mb-8 drop-shadow-xl">Sua Autoridade Começa Agora.</h2>
-                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="bg-white text-black hover:bg-slate-200 font-black py-5 px-10 rounded-full text-xl shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all hover:scale-105 flex items-center gap-2 mx-auto">
+                <h2 className="text-4xl md:text-6xl font-black text-white mb-8 drop-shadow-xl reveal">Sua Autoridade Começa Agora.</h2>
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="bg-white text-black hover:bg-slate-200 font-black py-5 px-10 rounded-full text-xl shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all hover:scale-105 flex items-center gap-2 mx-auto reveal delay-200">
                     CRIAR CONTA GRÁTIS
                     <span className="material-symbols-outlined">arrow_upward</span>
                 </button>
@@ -341,7 +389,7 @@ const HomeLanding: React.FC = () => {
                 <div className="flex items-center justify-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
                     <img src="/logo.png" alt="SocialPrime" className="h-8 filter drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
                 </div>
-                <p className="text-slate-600 text-sm">© 2026 SocialPrime. Todos os direitos reservados.</p>
+                <p className="text-slate-600 text-sm">© 2024 SocialPrime SMM. Todos os direitos reservados.</p>
             </footer>
 
         </div>
