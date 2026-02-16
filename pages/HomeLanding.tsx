@@ -398,7 +398,7 @@ const HomeLanding: React.FC = () => {
                 <div className="flex items-center justify-center gap-2 mb-4 opacity-50 hover:opacity-100 transition-opacity">
                     <img src="/logo.png" alt="SocialPrime" className="h-8 grayscale hover:grayscale-0 transition-all" />
                 </div>
-                <p className="text-slate-600 text-sm">© 2024 SocialPrime SMM. Todos os direitos reservados.</p>
+                <p className="text-slate-600 text-sm">© 2026 SocialPrime. Todos os direitos reservados.</p>
             </footer>
 
         </div>
