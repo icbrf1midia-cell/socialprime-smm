@@ -117,7 +117,7 @@ const LayoutHandler: React.FC = () => {
         <ProtectedRoute>
           <MainLayout>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/new-order" element={<NewOrder />} />
               <Route path="/add-funds" element={<AddFunds />} />
               <Route path="/history" element={<History />} />

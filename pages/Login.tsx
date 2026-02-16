@@ -22,10 +22,13 @@ const Login: React.FC = () => {
 
       if (error) throw error;
 
-      if (data.user?.email === 'brunomeueditor@gmail.com') {
-        navigate('/admin');
-      } else {
-        navigate('/');
+      if (data.user) {
+        // Verifica se é o Admin
+        if (data.user.email === 'brunomeueditor@gmail.com') {
+          navigate('/admin'); // Admin vai para o Painel de Controle
+        } else {
+          navigate('/dashboard'); // Cliente vai para o Dashboard de Pedidos
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Falha ao fazer login.');

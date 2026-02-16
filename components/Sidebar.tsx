@@ -144,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {profile?.email === 'brunomeueditor@gmail.com' ? (
                         <NavItem to="/admin" icon="dashboard" label="Dashboard" />
                     ) : (
-                        <NavItem to="/" icon="dashboard" label="Dashboard" />
+                        <NavItem to="/dashboard" icon="dashboard" label="Dashboard" />
                     )}
 
                     {/* Client Only Links */}
