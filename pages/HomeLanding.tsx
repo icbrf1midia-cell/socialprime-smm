@@ -220,19 +220,6 @@ const HomeLanding: React.FC = () => {
 
                     {/* Formulário Glassmorphism 2.0 */}
                     <div className="lg:col-span-5 relative z-20">
-                        {/* Card Flutuante 3D */}
-                        <div className="absolute -top-12 -right-6 md:-right-10 bg-[#1e293b]/90 p-4 rounded-2xl border border-white/10 shadow-2xl animate-bounce duration-[3000ms] hidden md:block z-30 backdrop-blur-xl">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-3 rounded-xl text-white shadow-lg shadow-pink-500/30">
-                                    <span className="material-symbols-outlined text-2xl">favorite</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Instagram Likes</p>
-                                    <p className="text-lg font-black text-white">+ 5.400</p>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group hover:border-white/20 transition-all">
                             {/* Borda de brilho superior */}
                             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-50"></div>
@@ -389,7 +376,7 @@ const HomeLanding: React.FC = () => {
                 <div className="flex items-center justify-center gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
                     <img src="/logo.png" alt="SocialPrime" className="h-8 filter drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
                 </div>
-                <p className="text-slate-600 text-sm">© 2024 SocialPrime SMM. Todos os direitos reservados.</p>
+                <p className="text-slate-600 text-sm">© 2026 SocialPrime. Todos os direitos reservados.</p>
             </footer>
 
         </div>
