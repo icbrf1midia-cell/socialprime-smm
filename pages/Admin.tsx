@@ -155,7 +155,7 @@ const Admin: React.FC = () => {
                                 R$ {metrics.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </h3>
                             <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
-                                +100% este mês
+                                +18% este mês
                             </div>
                         </div>
                         <div className="p-3 bg-[#1f2937] rounded-lg text-emerald-500 group-hover:scale-110 transition-transform">
