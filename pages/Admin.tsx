@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'; // Ajuste o caminho conforme sua estrutura (../ ou ../../)
 import { useNavigate } from 'react-router-dom';
 
+// Definição dos tipos de dados
 interface UserProfile {
     id: string;
     full_name: string;
@@ -15,6 +16,8 @@ interface AdminMetrics {
     total_users: number;
     total_orders: number;
     total_revenue: number;
+    total_cost: number;
+    net_profit: number;
 }
 
 const Admin: React.FC = () => {
@@ -23,14 +26,16 @@ const Admin: React.FC = () => {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Métricas Reais do Banco
+    // Estado para as métricas financeiras
     const [metrics, setMetrics] = useState<AdminMetrics>({
         total_users: 0,
         total_orders: 0,
-        total_revenue: 0
+        total_revenue: 0,
+        total_cost: 0,
+        net_profit: 0
     });
 
-    // Estado do Modal
+    // Estados do Modal de Saldo
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
     const [amountToAdd, setAmountToAdd] = useState('');
@@ -42,36 +47,40 @@ const Admin: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            // 1. Busca Métricas (Calculadora SQL)
-            const { data: metricsData, error: metricsError } = await supabase.rpc('get_admin_metrics');
-            if (metricsData) {
+            // 1. Busca as Métricas Financeiras Reais (via função RPC do banco)
+            const { data: metricsData, error: metricsError } = await supabase.rpc('get_admin_stats');
+
+            if (metricsError) {
+                console.error('Erro ao carregar métricas:', metricsError);
+            } else if (metricsData) {
                 setMetrics(metricsData);
             }
 
-            // 2. Busca Lista de Usuários
+            // 2. Busca a Lista de Usuários VIA FUNÇÃO RPC (Isso resolve o problema de lista vazia e cálculos)
             const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users_list');
 
             if (usersError) throw usersError;
 
+            // Formata os dados recebidos da função
             const formattedUsers: UserProfile[] = (usersData || []).map((user: any) => ({
                 id: user.id,
                 full_name: user.full_name || 'Usuário sem nome',
                 email: user.email || 'Sem email',
                 balance: user.balance || 0,
-                total_spent: user.total_spent || 0,
-                status: 'Ativo'
+                total_spent: user.total_spent || 0, // Agora vem calculado do banco!
+                status: user.status || 'Ativo'
             }));
 
             setUsers(formattedUsers);
 
         } catch (error: any) {
-            console.error('Erro Admin:', error.message);
-            // alert('Erro ao carregar dados: ' + error.message);
+            console.error('Erro Geral Admin:', error.message);
         } finally {
             setLoading(false);
         }
     };
 
+    // Função para Adicionar Saldo ao Usuário
     const handleAddBalance = async () => {
         if (!selectedUser || !amountToAdd) return;
         const valor = parseFloat(amountToAdd.replace(',', '.'));
@@ -91,7 +100,7 @@ const Admin: React.FC = () => {
 
             if (error) throw error;
 
-            loadDashboard();
+            loadDashboard(); // Recarrega os dados
             setIsModalOpen(false);
             setAmountToAdd('');
             alert('Saldo adicionado com sucesso!');
@@ -102,6 +111,7 @@ const Admin: React.FC = () => {
         }
     };
 
+    // Filtro de busca na tabela
     const filteredUsers = users.filter(user => {
         const term = searchTerm.toLowerCase();
         return (
@@ -111,12 +121,17 @@ const Admin: React.FC = () => {
         );
     });
 
+    // Formatador de Moeda (R$)
+    const formatMoney = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
+
     if (loading) return <div className="p-10 text-white animate-pulse">Carregando painel do comandante...</div>;
 
     return (
         <div className="space-y-8 pb-20">
 
-            {/* --- HEADER RESTAURADO (Igual ao print 0000.PNG) --- */}
+            {/* --- HEADER --- */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <div className="inline-flex items-center px-2.5 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wider mb-3">
@@ -124,17 +139,14 @@ const Admin: React.FC = () => {
                     </div>
                     <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">Painel de Controle</h1>
                     <p className="text-slate-400 mt-2 text-lg">
-                        Visão geral financeira e gerenciamento de usuários do SocialPrime.
+                        Visão geral financeira e gerenciamento de usuários.
                     </p>
                 </div>
                 <button
                     onClick={() => {
                         const pwd = prompt('Digite a senha de administrador:');
-                        if (pwd === '123456') {
-                            navigate('/api-config');
-                        } else {
-                            alert('Senha incorreta');
-                        }
+                        if (pwd === '123456') navigate('/api-config');
+                        else alert('Senha incorreta');
                     }}
                     className="bg-[#1e293b] hover:bg-[#334155] border border-slate-700 text-white px-4 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 text-sm shadow-sm"
                 >
@@ -143,65 +155,110 @@ const Admin: React.FC = () => {
                 </button>
             </div>
 
-            {/* --- CARDS DE MÉTRICAS (Dados Reais do Banco) --- */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* --- BLOCO FINANCEIRO (Cards) --- */}
+            <div>
+                <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-500">payments</span>
+                    Financeiro
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                {/* Card 1: Lucro */}
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Lucro Real (Líquido)</p>
-                            <h3 className="text-3xl font-black text-white">
-                                R$ {metrics.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </h3>
-                            <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
-                                +18% este mês
+                    {/* Card 1: Faturamento */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Faturamento Total</p>
+                                <h3 className="text-3xl font-black text-white">
+                                    {formatMoney(metrics.total_revenue || 0)}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-2">Valor pago pelos clientes</p>
+                            </div>
+                            <div className="p-3 bg-[#1f2937] rounded-lg text-blue-500">
+                                <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
                             </div>
                         </div>
-                        <div className="p-3 bg-[#1f2937] rounded-lg text-emerald-500 group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-2xl">attach_money</span>
-                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
                     </div>
-                    {/* Background Glow Effect */}
-                    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
-                </div>
 
-                {/* Card 2: Usuários */}
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-blue-500/30 transition-all">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Usuários</p>
-                            <h3 className="text-3xl font-black text-white">{metrics.total_users}</h3>
-                            <p className="text-xs text-slate-500 mt-2">
-                                Cadastrados na plataforma
-                            </p>
+                    {/* Card 2: Custo API */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-red-500/30 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Custo API (Fornecedor)</p>
+                                <h3 className="text-3xl font-black text-white">
+                                    {formatMoney(metrics.total_cost || 0)}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-2">Gasto com provedores</p>
+                            </div>
+                            <div className="p-3 bg-[#1f2937] rounded-lg text-red-500">
+                                <span className="material-symbols-outlined text-2xl">trending_down</span>
+                            </div>
                         </div>
-                        <div className="p-3 bg-[#1f2937] rounded-lg text-blue-500 group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-2xl">group</span>
-                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
                     </div>
-                    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
-                </div>
 
-                {/* Card 3: Pedidos */}
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-purple-500/30 transition-all">
-                    <div className="flex justify-between items-start z-10 relative">
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Pedidos</p>
-                            <h3 className="text-3xl font-black text-white">{metrics.total_orders}</h3>
-                            <p className="text-xs text-slate-500 mt-2">
-                                Processados pelo sistema
-                            </p>
+                    {/* Card 3: Lucro Líquido */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-emerald-900/30 shadow-lg relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Lucro Real (Líquido)</p>
+                                <h3 className="text-3xl font-black text-emerald-400">
+                                    {formatMoney(metrics.net_profit || 0)}
+                                </h3>
+                                <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
+                                    Líquido no bolso
+                                </div>
+                            </div>
+                            <div className="p-3 bg-[#1f2937] rounded-lg text-emerald-500 group-hover:scale-110 transition-transform">
+                                <span className="material-symbols-outlined text-2xl">attach_money</span>
+                            </div>
                         </div>
-                        <div className="p-3 bg-[#1f2937] rounded-lg text-purple-500 group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-2xl">shopping_bag</span>
-                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-all"></div>
                     </div>
-                    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+
                 </div>
             </div>
 
-            {/* --- TABELA DE USUÁRIOS (Mantida) --- */}
+            {/* --- BLOCO OPERACIONAL --- */}
+            <div>
+                <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-purple-500">analytics</span>
+                    Operacional
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Card Usuários */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-purple-500/30 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Usuários</p>
+                                <h3 className="text-3xl font-black text-white">{metrics.total_users}</h3>
+                                <p className="text-xs text-slate-500 mt-2">Cadastrados na plataforma</p>
+                            </div>
+                            <div className="p-3 bg-[#1f2937] rounded-lg text-purple-500 group-hover:scale-110 transition-transform">
+                                <span className="material-symbols-outlined text-2xl">group</span>
+                            </div>
+                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+                    </div>
+
+                    {/* Card Pedidos */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-indigo-500/30 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pedidos Realizados</p>
+                                <h3 className="text-3xl font-black text-white">{metrics.total_orders}</h3>
+                                <p className="text-xs text-slate-500 mt-2">Processados com sucesso</p>
+                            </div>
+                            <div className="p-3 bg-[#1f2937] rounded-lg text-indigo-500 group-hover:scale-110 transition-transform">
+                                <span className="material-symbols-outlined text-2xl">shopping_cart</span>
+                            </div>
+                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- TABELA DE USUÁRIOS --- */}
             <div className="bg-[#111827] rounded-xl border border-slate-800 shadow-lg overflow-hidden">
                 <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -255,11 +312,11 @@ const Admin: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`font-mono font-bold ${user.balance > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>
-                                                R$ {user.balance.toFixed(2)}
+                                                {formatMoney(user.balance)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 font-mono font-bold text-slate-300">
-                                            R$ {user.total_spent.toFixed(2)}
+                                            {formatMoney(user.total_spent)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wide">
