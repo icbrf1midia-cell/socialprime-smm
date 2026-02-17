@@ -37,7 +37,10 @@ const AdminSupport: React.FC = () => {
     const fetchTickets = async () => {
         const { data: ticketsData } = await supabase
             .from('tickets')
-            .select('*')
+            .select(`
+                *,
+                profiles:user_id (email, full_name)
+            `)
             .order('updated_at', { ascending: false }); // Show recent activity first
 
         if (ticketsData) {
