@@ -55,7 +55,7 @@ const AdminSupport: React.FC = () => {
         }
     };
 
-    // When ticket selected, fetch messages
+    // When ticket selected, fetch messages and mark as read
     useEffect(() => {
         if (!selectedTicket) return;
 
@@ -67,6 +67,17 @@ const AdminSupport: React.FC = () => {
                 .order('created_at', { ascending: true });
 
             if (msgs) setMessages(msgs);
+
+            // Mark user messages as read
+            const unreadUserMessages = msgs?.filter(m => !m.is_admin && !m.read_at);
+            if (unreadUserMessages && unreadUserMessages.length > 0) {
+                await supabase
+                    .from('ticket_messages')
+                    .update({ read_at: new Date().toISOString() })
+                    .eq('ticket_id', selectedTicket.id)
+                    .eq('is_admin', false)
+                    .is('read_at', null);
+            }
         };
 
         fetchMessages();
@@ -77,13 +88,21 @@ const AdminSupport: React.FC = () => {
             .on(
                 'postgres_changes',
                 {
-                    event: 'INSERT',
+                    event: 'INSERT', // Listen for new messages
                     schema: 'public',
                     table: 'ticket_messages',
                     filter: `ticket_id=eq.${selectedTicket.id}`
                 },
-                (payload) => {
+                async (payload) => {
                     setMessages(prev => [...prev, payload.new]);
+
+                    // Specific logic: if new message is from user, mark as read immediately if we are looking at it
+                    if (!payload.new.is_admin) {
+                        await supabase
+                            .from('ticket_messages')
+                            .update({ read_at: new Date().toISOString() })
+                            .eq('id', payload.new.id);
+                    }
                 }
             )
             .subscribe();

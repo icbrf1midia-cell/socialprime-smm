@@ -17,7 +17,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadCount, setUnreadCount] = useState(0); // Notifications
+    const [supportUnreadCount, setSupportUnreadCount] = useState(0); // Support Messages
 
     useEffect(() => {
         fetchProfile();
@@ -30,7 +31,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         };
         window.addEventListener('userUpdated', handleUserUpdate);
 
-        return () => window.removeEventListener('userUpdated', handleUserUpdate);
+        // Subscribe to ticket_messages to update badge in realtime
+        const messageChannel = supabase
+            .channel('sidebar_messages')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'ticket_messages' },
+                () => {
+                    fetchUnreadCount();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            window.removeEventListener('userUpdated', handleUserUpdate);
+            supabase.removeChannel(messageChannel);
+        };
     }, []);
 
     const fetchProfile = async () => {
@@ -61,13 +77,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const fetchUnreadCount = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            const { count } = await supabase
+            const isAdmin = user.email === 'brunomeueditor@gmail.com';
+
+            // 1. Notifications Count
+            const { count: notifCount } = await supabase
                 .from('notifications')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
                 .eq('is_read', false);
 
-            let totalUnread = count || 0;
+            let totalUnread = notifCount || 0;
 
             // Check for unread global notification
             const { data: globalNotif } = await supabase
@@ -85,7 +104,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 }
             }
 
-            setUnreadCount(totalUnread);
+            // 2. Support Messages Count
+            let supportUnread = 0;
+            if (isAdmin) {
+                // Admin: count messages from users (is_admin = false) that are unread
+                const { count } = await supabase
+                    .from('ticket_messages')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('is_admin', false)
+                    .is('read_at', null);
+                supportUnread = count || 0;
+            } else {
+                // User: count messages from admin (is_admin = true) that are unread AND belong to user's tickets
+                // Note: user_id check is complex in join, simpler to get user tickets first
+                const { data: tickets } = await supabase.from('tickets').select('id').eq('user_id', user.id);
+                if (tickets && tickets.length > 0) {
+                    const ticketIds = tickets.map(t => t.id);
+                    const { count } = await supabase
+                        .from('ticket_messages')
+                        .select('*', { count: 'exact', head: true })
+                        .in('ticket_id', ticketIds)
+                        .eq('is_admin', true)
+                        .is('read_at', null);
+                    supportUnread = count || 0;
+                }
+            }
+
+            setUnreadCount(totalUnread); // Keep existing state for notifications
+            setSupportUnreadCount(supportUnread); // New state for support
         }
     };
 
@@ -151,7 +197,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {profile?.email === 'brunomeueditor@gmail.com' ? (
                         <>
                             <NavItem to="/admin" icon="dashboard" label="Dashboard" />
-                            <NavItem to="/admin/support" icon="forum" label="Gerenciar Suporte" />
+                            <NavItem to="/admin/support" icon="forum" label="Gerenciar Suporte" badge={supportUnreadCount} />
                         </>
                     ) : (
                         <NavItem to="/dashboard" icon="dashboard" label="Dashboard" />
@@ -176,11 +222,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             onClick={() => {
                                 window.dispatchEvent(new Event('toggleSupport'));
                                 if (window.innerWidth < 1024) onClose();
+                                // Optional: Reset badge locally until next fetch
+                                setSupportUnreadCount(0);
                             }}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-text-secondary hover:bg-white/5 hover:text-white w-full text-left"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-text-secondary hover:bg-white/5 hover:text-white w-full text-left relative"
                         >
                             <span className="material-symbols-outlined">support_agent</span>
                             <span className="font-medium flex-1">Suporte</span>
+                            {supportUnreadCount > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                    {supportUnreadCount > 99 ? '99+' : supportUnreadCount}
+                                </span>
+                            )}
                         </button>
                     )}
                 </nav>

@@ -80,8 +80,15 @@ const SupportWidget: React.FC = () => {
                     table: 'ticket_messages',
                     filter: `ticket_id=eq.${ticket.id}`
                 },
-                (payload) => {
+                async (payload) => {
                     setMessages(prev => [...prev, payload.new]);
+                    // If new message is from admin and widget is open, mark as read
+                    if (payload.new.is_admin && isOpen) {
+                        await supabase
+                            .from('ticket_messages')
+                            .update({ read_at: new Date().toISOString() })
+                            .eq('id', payload.new.id);
+                    }
                 }
             )
             .subscribe();
@@ -112,7 +119,19 @@ const SupportWidget: React.FC = () => {
                 .eq('ticket_id', activeTicket.id)
                 .order('created_at', { ascending: true });
 
-            if (msgs) setMessages(msgs);
+            if (msgs) {
+                setMessages(msgs);
+                // Mark admin messages as read
+                const unreadAdminMessages = msgs.filter((m: any) => m.is_admin && !m.read_at);
+                if (unreadAdminMessages.length > 0) {
+                    await supabase
+                        .from('ticket_messages')
+                        .update({ read_at: new Date().toISOString() })
+                        .eq('ticket_id', activeTicket.id)
+                        .eq('is_admin', true)
+                        .is('read_at', null);
+                }
+            }
         } else {
             setTicket(null);
             setMessages([]);
