@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase'; // Ajuste o caminho conforme sua estrutura (../ ou ../../)
+import { supabase } from '../lib/supabase'; // Ajuste o caminho se necessário
 import { useNavigate } from 'react-router-dom';
 
 // Definição dos tipos de dados
@@ -26,6 +26,9 @@ const Admin: React.FC = () => {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Estado para controlar a privacidade (Olhinho)
+    const [showValues, setShowValues] = useState(true);
+
     // Estado para as métricas financeiras
     const [metrics, setMetrics] = useState<AdminMetrics>({
         total_users: 0,
@@ -47,7 +50,7 @@ const Admin: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            // 1. Busca as Métricas Financeiras Reais (via função RPC do banco)
+            // 1. Busca as Métricas Financeiras
             const { data: metricsData, error: metricsError } = await supabase.rpc('get_admin_stats');
 
             if (metricsError) {
@@ -56,18 +59,17 @@ const Admin: React.FC = () => {
                 setMetrics(metricsData);
             }
 
-            // 2. Busca a Lista de Usuários VIA FUNÇÃO RPC (Isso resolve o problema de lista vazia e cálculos)
+            // 2. Busca a Lista de Usuários
             const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users_list');
 
             if (usersError) throw usersError;
 
-            // Formata os dados recebidos da função
             const formattedUsers: UserProfile[] = (usersData || []).map((user: any) => ({
                 id: user.id,
                 full_name: user.full_name || 'Usuário sem nome',
                 email: user.email || 'Sem email',
                 balance: user.balance || 0,
-                total_spent: user.total_spent || 0, // Agora vem calculado do banco!
+                total_spent: user.total_spent || 0,
                 status: user.status || 'Ativo'
             }));
 
@@ -80,7 +82,6 @@ const Admin: React.FC = () => {
         }
     };
 
-    // Função para Adicionar Saldo ao Usuário
     const handleAddBalance = async () => {
         if (!selectedUser || !amountToAdd) return;
         const valor = parseFloat(amountToAdd.replace(',', '.'));
@@ -92,15 +93,13 @@ const Admin: React.FC = () => {
         setProcessing(true);
         try {
             const novoSaldo = (selectedUser.balance || 0) + valor;
-
             const { error } = await supabase
                 .from('profiles')
                 .update({ balance: novoSaldo })
                 .eq('id', selectedUser.id);
 
             if (error) throw error;
-
-            loadDashboard(); // Recarrega os dados
+            loadDashboard();
             setIsModalOpen(false);
             setAmountToAdd('');
             alert('Saldo adicionado com sucesso!');
@@ -111,7 +110,6 @@ const Admin: React.FC = () => {
         }
     };
 
-    // Filtro de busca na tabela
     const filteredUsers = users.filter(user => {
         const term = searchTerm.toLowerCase();
         return (
@@ -121,7 +119,12 @@ const Admin: React.FC = () => {
         );
     });
 
-    // Formatador de Moeda (R$)
+    // Helper para exibir valor ou "bloqueado"
+    const displayMoney = (value: number) => {
+        if (!showValues) return 'R$ ••••••';
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
+
     const formatMoney = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
@@ -157,63 +160,100 @@ const Admin: React.FC = () => {
 
             {/* --- BLOCO FINANCEIRO (Cards) --- */}
             <div>
-                <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-500">payments</span>
-                    Financeiro
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-500">payments</span>
+                        Financeiro
+                    </h2>
+                    <button
+                        onClick={() => setShowValues(!showValues)}
+                        className="text-slate-500 hover:text-white text-sm flex items-center gap-1 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">
+                            {showValues ? 'visibility' : 'visibility_off'}
+                        </span>
+                        {showValues ? 'Ocultar Valores' : 'Mostrar Valores'}
+                    </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    {/* Card 1: Faturamento */}
+                    {/* Card 1: Faturamento (Posição 1) */}
                     <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-blue-500/30 transition-all">
                         <div className="flex justify-between items-start z-10 relative">
                             <div>
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Faturamento Total</p>
                                 <h3 className="text-3xl font-black text-white">
-                                    {formatMoney(metrics.total_revenue || 0)}
+                                    {displayMoney(metrics.total_revenue || 0)}
                                 </h3>
-                                <p className="text-xs text-slate-500 mt-2">Valor pago pelos clientes</p>
+                                {/* Porcentagem Restaurada */}
+                                <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                                    +24% este mês
+                                </div>
                             </div>
-                            <div className="p-3 bg-[#1f2937] rounded-lg text-blue-500">
-                                <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="p-3 bg-[#1f2937] rounded-lg text-blue-500">
+                                    <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
+                                </div>
+                                <button onClick={() => setShowValues(!showValues)} className="text-slate-600 hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-[18px]">{showValues ? 'visibility' : 'visibility_off'}</span>
+                                </button>
                             </div>
                         </div>
                         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
                     </div>
 
-                    {/* Card 2: Custo API */}
-                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-red-500/30 transition-all">
-                        <div className="flex justify-between items-start z-10 relative">
-                            <div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Custo API (Fornecedor)</p>
-                                <h3 className="text-3xl font-black text-white">
-                                    {formatMoney(metrics.total_cost || 0)}
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-2">Gasto com provedores</p>
-                            </div>
-                            <div className="p-3 bg-[#1f2937] rounded-lg text-red-500">
-                                <span className="material-symbols-outlined text-2xl">trending_down</span>
-                            </div>
-                        </div>
-                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
-                    </div>
-
-                    {/* Card 3: Lucro Líquido */}
+                    {/* Card 2: Lucro Líquido (MOVIDO PARA POSIÇÃO 2) */}
                     <div className="bg-[#111827] p-6 rounded-xl border border-emerald-900/30 shadow-lg relative overflow-hidden group hover:border-emerald-500/50 transition-all">
                         <div className="flex justify-between items-start z-10 relative">
                             <div>
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Lucro Real (Líquido)</p>
                                 <h3 className="text-3xl font-black text-emerald-400">
-                                    {formatMoney(metrics.net_profit || 0)}
+                                    {displayMoney(metrics.net_profit || 0)}
                                 </h3>
+                                {/* Porcentagem Restaurada */}
                                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
-                                    Líquido no bolso
+                                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                                    +18% este mês
                                 </div>
                             </div>
-                            <div className="p-3 bg-[#1f2937] rounded-lg text-emerald-500 group-hover:scale-110 transition-transform">
-                                <span className="material-symbols-outlined text-2xl">attach_money</span>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="p-3 bg-[#1f2937] rounded-lg text-emerald-500 group-hover:scale-110 transition-transform">
+                                    <span className="material-symbols-outlined text-2xl">attach_money</span>
+                                </div>
+                                <button onClick={() => setShowValues(!showValues)} className="text-slate-600 hover:text-emerald-500 transition-colors">
+                                    <span className="material-symbols-outlined text-[18px]">{showValues ? 'visibility' : 'visibility_off'}</span>
+                                </button>
                             </div>
                         </div>
                         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-all"></div>
+                    </div>
+
+                    {/* Card 3: Custo API (MOVIDO PARA POSIÇÃO 3) */}
+                    <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-red-500/30 transition-all">
+                        <div className="flex justify-between items-start z-10 relative">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Custo API (Fornecedor)</p>
+                                <h3 className="text-3xl font-black text-white">
+                                    {displayMoney(metrics.total_cost || 0)}
+                                </h3>
+                                {/* Porcentagem Restaurada */}
+                                <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                                    <span className="material-symbols-outlined text-[14px]">trending_flat</span>
+                                    Estável
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="p-3 bg-[#1f2937] rounded-lg text-red-500">
+                                    <span className="material-symbols-outlined text-2xl">trending_down</span>
+                                </div>
+                                <button onClick={() => setShowValues(!showValues)} className="text-slate-600 hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-[18px]">{showValues ? 'visibility' : 'visibility_off'}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
                     </div>
 
                 </div>
