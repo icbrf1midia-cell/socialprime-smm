@@ -37,10 +37,7 @@ const AdminSupport: React.FC = () => {
     const fetchTickets = async () => {
         const { data: ticketsData } = await supabase
             .from('tickets')
-            .select(`
-                *,
-                profiles:user_id (email, full_name)
-            `)
+            .select('*')
             .order('updated_at', { ascending: false }); // Show recent activity first
 
         if (ticketsData) {
@@ -162,8 +159,8 @@ const AdminSupport: React.FC = () => {
                             key={ticket.id}
                             onClick={() => setSelectedTicket(ticket)}
                             className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedTicket?.id === ticket.id
-                                    ? 'bg-fuchsia-500/10 border-fuchsia-500/50 shadow-[0_0_15px_rgba(192,38,211,0.1)]'
-                                    : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10'
+                                ? 'bg-fuchsia-500/10 border-fuchsia-500/50 shadow-[0_0_15px_rgba(192,38,211,0.1)]'
+                                : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10'
                                 }`}
                         >
                             <div className="flex justify-between items-start mb-1">
@@ -225,8 +222,8 @@ const AdminSupport: React.FC = () => {
                                     <div key={msg.id} className={`flex ${isAdminMsg ? 'justify-end' : 'justify-start'}`}>
                                         <div
                                             className={`max-w-[70%] rounded-2xl p-4 relative shadow-lg ${isAdminMsg
-                                                    ? 'bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white rounded-tr-sm border border-fuchsia-400/20'
-                                                    : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
+                                                ? 'bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white rounded-tr-sm border border-fuchsia-400/20'
+                                                : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
                                                 }`}
                                         >
                                             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
