@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase'; // Ajuste o caminho se necessário
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 // Definição dos tipos de dados
@@ -50,16 +50,41 @@ const Admin: React.FC = () => {
 
     const loadDashboard = async () => {
         try {
-            // 1. Busca as Métricas Financeiras
-            const { data: metricsData, error: metricsError } = await supabase.rpc('get_admin_stats');
+            // 1. Busca CONFIGURAÇÕES DE MARKETING (Fake Data / Offsets)
+            const { data: settings } = await supabase
+                .from('admin_settings')
+                .select('*')
+                .single();
 
-            if (metricsError) {
-                console.error('Erro ao carregar métricas:', metricsError);
-            } else if (metricsData) {
-                setMetrics(metricsData);
+            // Variáveis de offset (começam zeradas)
+            let offRevenue = 0, offCost = 0, offProfit = 0, offUsers = 0, offOrders = 0;
+
+            // Se o modo simulado estiver ATIVO, carrega os valores
+            if (settings && settings.is_simulated) {
+                offRevenue = Number(settings.revenue_offset) || 0;
+                offCost = Number(settings.cost_offset) || 0;
+                offProfit = Number(settings.profit_offset) || 0;
+                offUsers = Number(settings.users_offset) || 0;
+                offOrders = Number(settings.orders_offset) || 0;
             }
 
-            // 2. Busca a Lista de Usuários
+            // 2. Busca DADOS REAIS (Banco de Dados)
+            const { data: realMetrics, error: metricsError } = await supabase.rpc('get_admin_stats');
+
+            if (metricsError) console.error('Erro ao carregar métricas:', metricsError);
+
+            // 3. MESCLA REAL + FAKE
+            if (realMetrics) {
+                setMetrics({
+                    total_revenue: (realMetrics.total_revenue || 0) + offRevenue,
+                    total_cost: (realMetrics.total_cost || 0) + offCost,
+                    net_profit: (realMetrics.net_profit || 0) + offProfit,
+                    total_users: (realMetrics.total_users || 0) + offUsers,
+                    total_orders: (realMetrics.total_orders || 0) + offOrders
+                });
+            }
+
+            // 4. Busca LISTA DE USUÁRIOS
             const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users_list');
 
             if (usersError) throw usersError;
@@ -186,7 +211,6 @@ const Admin: React.FC = () => {
                                 <h3 className="text-3xl font-black text-white">
                                     {displayMoney(metrics.total_revenue || 0)}
                                 </h3>
-                                {/* Porcentagem Restaurada */}
                                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
                                     <span className="material-symbols-outlined text-[14px]">trending_up</span>
                                     +24% este mês
@@ -204,7 +228,7 @@ const Admin: React.FC = () => {
                         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
                     </div>
 
-                    {/* Card 2: Lucro Líquido (MOVIDO PARA POSIÇÃO 2) */}
+                    {/* Card 2: Lucro Líquido (POSIÇÃO 2 - DESTAQUE) */}
                     <div className="bg-[#111827] p-6 rounded-xl border border-emerald-900/30 shadow-lg relative overflow-hidden group hover:border-emerald-500/50 transition-all">
                         <div className="flex justify-between items-start z-10 relative">
                             <div>
@@ -212,7 +236,6 @@ const Admin: React.FC = () => {
                                 <h3 className="text-3xl font-black text-emerald-400">
                                     {displayMoney(metrics.net_profit || 0)}
                                 </h3>
-                                {/* Porcentagem Restaurada */}
                                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
                                     <span className="material-symbols-outlined text-[14px]">trending_up</span>
                                     +18% este mês
@@ -230,7 +253,7 @@ const Admin: React.FC = () => {
                         <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl group-hover:bg-emerald-500/30 transition-all"></div>
                     </div>
 
-                    {/* Card 3: Custo API (MOVIDO PARA POSIÇÃO 3) */}
+                    {/* Card 3: Custo API (POSIÇÃO 3) */}
                     <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group hover:border-red-500/30 transition-all">
                         <div className="flex justify-between items-start z-10 relative">
                             <div>
@@ -238,7 +261,6 @@ const Admin: React.FC = () => {
                                 <h3 className="text-3xl font-black text-white">
                                     {displayMoney(metrics.total_cost || 0)}
                                 </h3>
-                                {/* Porcentagem Restaurada */}
                                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
                                     <span className="material-symbols-outlined text-[14px]">trending_flat</span>
                                     Estável
