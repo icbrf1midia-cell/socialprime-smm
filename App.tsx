@@ -16,6 +16,7 @@ import Register from './pages/Register';
 import HomeLanding from './pages/HomeLanding';
 import AddFunds from './pages/AddFunds';
 import Admin from './pages/Admin';
+import AdminSupport from './pages/admin/AdminSupport';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import SupportWidget from './components/SupportWidget';
@@ -130,9 +131,12 @@ const LayoutHandler: React.FC = () => {
               <Route path="/api-config" element={<ApiConfig />} />
               <Route path="/account" element={<Account />} />
               <Route path="/notifications" element={<Notifications />} />
-              <Route path="/admin" element={
+              <Route path="/admin/*" element={
                 <AdminRoute>
-                  <Admin />
+                  <Routes>
+                    <Route path="/" element={<Admin />} />
+                    <Route path="/support" element={<AdminSupport />} />
+                  </Routes>
                 </AdminRoute>
               } />
               <Route path="/services" element={<div className="p-10 text-center text-text-secondary">Página de Serviços (Em construção)</div>} />

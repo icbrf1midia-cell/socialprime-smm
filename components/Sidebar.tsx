@@ -149,7 +149,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <nav className="flex-1 overflow-y-auto p-4 space-y-2">
                     {/* Dashboard Logic */}
                     {profile?.email === 'brunomeueditor@gmail.com' ? (
-                        <NavItem to="/admin" icon="dashboard" label="Dashboard" />
+                        <>
+                            <NavItem to="/admin" icon="dashboard" label="Dashboard" />
+                            <NavItem to="/admin/support" icon="forum" label="Gerenciar Suporte" />
+                        </>
                     ) : (
                         <NavItem to="/dashboard" icon="dashboard" label="Dashboard" />
                     )}
@@ -167,17 +170,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <NavItem to="/account" icon="person" label="Minha Conta" />
                     <NavItem to="/notifications" icon="notifications" label="Notificações" badge={unreadCount} />
 
-                    {/* Support Button */}
-                    <button
-                        onClick={() => {
-                            window.dispatchEvent(new Event('toggleSupport'));
-                            if (window.innerWidth < 1024) onClose();
-                        }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-text-secondary hover:bg-white/5 hover:text-white w-full text-left"
-                    >
-                        <span className="material-symbols-outlined">support_agent</span>
-                        <span className="font-medium flex-1">Suporte</span>
-                    </button>
+                    {/* Support Button - Hide for Admin */}
+                    {profile?.email !== 'brunomeueditor@gmail.com' && (
+                        <button
+                            onClick={() => {
+                                window.dispatchEvent(new Event('toggleSupport'));
+                                if (window.innerWidth < 1024) onClose();
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-text-secondary hover:bg-white/5 hover:text-white w-full text-left"
+                        >
+                            <span className="material-symbols-outlined">support_agent</span>
+                            <span className="font-medium flex-1">Suporte</span>
+                        </button>
+                    )}
                 </nav>
 
                 {/* User & Logout Area */}

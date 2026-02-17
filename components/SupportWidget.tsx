@@ -15,6 +15,20 @@ const SupportWidget: React.FC = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [checkingUser, setCheckingUser] = useState(true);
+
+    // Initial check for admin
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email === 'brunomeueditor@gmail.com') {
+                setIsAdmin(true);
+            }
+            setCheckingUser(false);
+        };
+        checkUser();
+    }, []);
 
     // Scroll to bottom of chat
     const scrollToBottom = () => {
@@ -141,6 +155,8 @@ const SupportWidget: React.FC = () => {
         }
     };
 
+    if (checkingUser) return null;
+    if (isAdmin) return null;
     if (!isOpen) return null;
 
     return (
@@ -206,8 +222,8 @@ const SupportWidget: React.FC = () => {
                                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                     <div
                                         className={`max-w-[85%] rounded-2xl p-3 relative group ${isMe
-                                                ? 'bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white rounded-tr-sm shadow-lg shadow-fuchsia-900/20'
-                                                : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
+                                            ? 'bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white rounded-tr-sm shadow-lg shadow-fuchsia-900/20'
+                                            : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
                                             }`}
                                     >
                                         <p className="text-sm leading-relaxed">{msg.message}</p>
