@@ -13,10 +13,18 @@ const SupportWidget: React.FC = () => {
     const [ticket, setTicket] = useState<any>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
+
+    // Restored state variables
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingUser, setCheckingUser] = useState(true);
+
+    // Upload state
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     // Initial check for admin
     useEffect(() => {
@@ -37,7 +45,7 @@ const SupportWidget: React.FC = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isOpen]);
+    }, [messages, isOpen, previewUrl]);
 
     // Handle toggle event from Sidebar
     useEffect(() => {
@@ -125,20 +133,66 @@ const SupportWidget: React.FC = () => {
 
         if (newTicket) {
             setTicket(newTicket);
-            // Send initial welcome message from "System" (optional, but good UX)
-            // For now, we just start fresh
         } else {
             console.error('Error creating ticket:', error);
         }
         setLoading(false);
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert('O arquivo deve ter no máximo 5MB.');
+                return;
+            }
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const clearAttachment = () => {
+        setSelectedFile(null);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !userId || !ticket) return;
+        if ((!newMessage.trim() && !selectedFile) || !userId || !ticket) return;
 
         const msgContent = newMessage.trim();
-        setNewMessage(''); // Clear input immediately for better UX
+        setNewMessage('');
+
+        let attachmentUrl = null;
+
+        // Upload attachment if exists
+        if (selectedFile) {
+            setIsUploading(true);
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${ticket.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('support-attachments')
+                .upload(filePath, selectedFile);
+
+            if (uploadError) {
+                console.error('Error uploading file:', uploadError);
+                alert('Erro ao enviar imagem. Tente novamente.');
+                setIsUploading(false);
+                return;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('support-attachments')
+                .getPublicUrl(filePath);
+
+            attachmentUrl = publicUrl;
+            setIsUploading(false);
+            clearAttachment();
+        }
 
         const { error } = await supabase
             .from('ticket_messages')
@@ -146,12 +200,12 @@ const SupportWidget: React.FC = () => {
                 ticket_id: ticket.id,
                 sender_id: userId,
                 message: msgContent,
+                attachment_url: attachmentUrl,
                 is_admin: false
             }]);
 
         if (error) {
             console.error('Error sending message:', error);
-            // Ideally restore input value here on error
         }
     };
 
@@ -226,7 +280,17 @@ const SupportWidget: React.FC = () => {
                                             : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
                                             }`}
                                     >
-                                        <p className="text-sm leading-relaxed">{msg.message}</p>
+                                        {msg.attachment_url && (
+                                            <div className="mb-2 rounded-lg overflow-hidden border border-white/10">
+                                                <img
+                                                    src={msg.attachment_url}
+                                                    alt="Anexo"
+                                                    className="max-w-full max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => window.open(msg.attachment_url, '_blank')}
+                                                />
+                                            </div>
+                                        )}
+                                        {msg.message && <p className="text-sm leading-relaxed">{msg.message}</p>}
                                         <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-white/60' : 'text-slate-500'}`}>
                                             {formatTime(msg.created_at)}
                                         </p>
@@ -242,7 +306,41 @@ const SupportWidget: React.FC = () => {
             {/* Input Area */}
             {ticket && (
                 <div className="p-4 bg-[#0f172a] border-t border-white/5 relative z-20">
-                    <form onSubmit={sendMessage} className="flex gap-2 relative">
+                    {previewUrl && (
+                        <div className="mb-3 flex items-center gap-3 bg-white/5 p-2 rounded-lg border border-white/10">
+                            <div className="w-12 h-12 rounded-md overflow-hidden bg-black/50 flex-shrink-0">
+                                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs truncate font-medium">{selectedFile?.name}</p>
+                                <p className="text-slate-400 text-[10px]">{(selectedFile!.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                            <button
+                                onClick={clearAttachment}
+                                className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white"
+                            >
+                                <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                        </div>
+                    )}
+
+                    <form onSubmit={sendMessage} className="flex gap-2 relative items-end">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/png, image/jpeg, image/jpg"
+                            onChange={handleFileSelect}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-3 text-slate-400 hover:text-fuchsia-400 hover:bg-white/5 rounded-xl transition-colors"
+                            title="Anexar imagem"
+                        >
+                            <span className="material-symbols-outlined">attach_file</span>
+                        </button>
+
                         <input
                             type="text"
                             value={newMessage}
@@ -252,10 +350,14 @@ const SupportWidget: React.FC = () => {
                         />
                         <button
                             type="submit"
-                            disabled={!newMessage.trim()}
+                            disabled={(!newMessage.trim() && !selectedFile) || isUploading}
                             className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-3 rounded-xl transition-all shadow-lg shadow-fuchsia-600/20 flex items-center justify-center aspect-square"
                         >
-                            <span className="material-symbols-outlined">send</span>
+                            {isUploading ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            ) : (
+                                <span className="material-symbols-outlined">send</span>
+                            )}
                         </button>
                     </form>
                 </div>

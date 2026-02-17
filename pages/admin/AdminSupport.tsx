@@ -15,6 +15,11 @@ const AdminSupport: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
     // Fetch all tickets on mount
     useEffect(() => {
         fetchTickets();
@@ -91,20 +96,69 @@ const AdminSupport: React.FC = () => {
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, previewUrl]);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert('O arquivo deve ter no máximo 5MB.');
+                return;
+            }
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const clearAttachment = () => {
+        setSelectedFile(null);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !selectedTicket) return;
+        if ((!newMessage.trim() && !selectedFile) || !selectedTicket) return;
 
         const msgContent = newMessage.trim();
         setNewMessage('');
+
+        let attachmentUrl = null;
+
+        // Upload attachment if exists
+        if (selectedFile) {
+            setIsUploading(true);
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${selectedTicket.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('support-attachments')
+                .upload(filePath, selectedFile);
+
+            if (uploadError) {
+                console.error('Error uploading file:', uploadError);
+                alert('Erro ao enviar imagem. Tente novamente.');
+                setIsUploading(false);
+                return;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('support-attachments')
+                .getPublicUrl(filePath);
+
+            attachmentUrl = publicUrl;
+            setIsUploading(false);
+            clearAttachment();
+        }
 
         const { error } = await supabase
             .from('ticket_messages')
             .insert([{
                 ticket_id: selectedTicket.id,
                 message: msgContent,
+                attachment_url: attachmentUrl,
                 is_admin: true // Important for admin view
             }]);
 
@@ -229,7 +283,17 @@ const AdminSupport: React.FC = () => {
                                                 : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
                                                 }`}
                                         >
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                                            {msg.attachment_url && (
+                                                <div className="mb-2 rounded-lg overflow-hidden border border-white/10">
+                                                    <img
+                                                        src={msg.attachment_url}
+                                                        alt="Anexo"
+                                                        className="max-w-full max-h-[200px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                        onClick={() => window.open(msg.attachment_url, '_blank')}
+                                                    />
+                                                </div>
+                                            )}
+                                            {msg.message && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>}
                                             <p className={`text-[10px] mt-1 text-right ${isAdminMsg ? 'text-white/60' : 'text-slate-500'}`}>
                                                 {formatTime(msg.created_at)}
                                             </p>
@@ -243,7 +307,41 @@ const AdminSupport: React.FC = () => {
                         {/* Chat Input */}
                         {selectedTicket.status === 'open' ? (
                             <div className="p-4 bg-[#0f172a] border-t border-white/5 relative z-20">
-                                <form onSubmit={sendMessage} className="flex gap-4">
+                                {previewUrl && (
+                                    <div className="mb-3 flex items-center gap-3 bg-white/5 p-2 rounded-lg border border-white/10 max-w-fit">
+                                        <div className="w-12 h-12 rounded-md overflow-hidden bg-black/50 flex-shrink-0">
+                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="min-w-0 max-w-[150px]">
+                                            <p className="text-white text-xs truncate font-medium">{selectedFile?.name}</p>
+                                            <p className="text-slate-400 text-[10px]">{(selectedFile!.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        </div>
+                                        <button
+                                            onClick={clearAttachment}
+                                            className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                <form onSubmit={sendMessage} className="flex gap-4 items-end">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/png, image/jpeg, image/jpg"
+                                        onChange={handleFileSelect}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-3 text-slate-400 hover:text-fuchsia-400 hover:bg-white/5 rounded-xl transition-colors"
+                                        title="Anexar imagem"
+                                    >
+                                        <span className="material-symbols-outlined">attach_file</span>
+                                    </button>
+
                                     <input
                                         type="text"
                                         value={newMessage}
@@ -253,11 +351,17 @@ const AdminSupport: React.FC = () => {
                                     />
                                     <button
                                         type="submit"
-                                        disabled={!newMessage.trim()}
+                                        disabled={(!newMessage.trim() && !selectedFile) || isUploading}
                                         className="bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl transition-all shadow-lg shadow-fuchsia-600/20 font-bold flex items-center gap-2"
                                     >
-                                        <span>Enviar</span>
-                                        <span className="material-symbols-outlined">send</span>
+                                        {isUploading ? (
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                        ) : (
+                                            <>
+                                                <span>Enviar</span>
+                                                <span className="material-symbols-outlined">send</span>
+                                            </>
+                                        )}
                                     </button>
                                 </form>
                             </div>
