@@ -18,6 +18,7 @@ import AddFunds from './pages/AddFunds';
 import Admin from './pages/Admin';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import SupportWidget from './components/SupportWidget';
 
 // Loading Component
 const LoadingScreen = () => (
@@ -95,6 +96,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <main className="flex-1 p-4 md:p-6 pb-32">
           {children}
         </main>
+        <SupportWidget />
       </div>
     </div>
   );

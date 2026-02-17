@@ -166,6 +166,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {/* Common Links */}
                     <NavItem to="/account" icon="person" label="Minha Conta" />
                     <NavItem to="/notifications" icon="notifications" label="Notificações" badge={unreadCount} />
+
+                    {/* Support Button */}
+                    <button
+                        onClick={() => {
+                            window.dispatchEvent(new Event('toggleSupport'));
+                            if (window.innerWidth < 1024) onClose();
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-text-secondary hover:bg-white/5 hover:text-white w-full text-left"
+                    >
+                        <span className="material-symbols-outlined">support_agent</span>
+                        <span className="font-medium flex-1">Suporte</span>
+                    </button>
                 </nav>
 
                 {/* User & Logout Area */}
