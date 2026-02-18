@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 // ============================================================================
 // 🚨 INTERRUPTOR DO MODO DE TESTE 🚨
 // ============================================================================
-const MODO_TESTE = true; // true = Simula | false = Real
+const MODO_TESTE = false; // true = Simula | false = Real
 // ============================================================================
 
 interface Service {
