@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 // ============================================================================
@@ -15,11 +15,12 @@ interface Service {
   service_id: number;
   name: string;
   category: string;
-  rate: number;
+  rate: number; // Preço de Custo (Provider)
   min: number;
   max: number;
   type: string;
   description?: string;
+  custom_margin?: number | null; // Nova coluna para margem personalizada
 }
 
 const NewOrder: React.FC = () => {
@@ -27,39 +28,51 @@ const NewOrder: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Estados de Configuração (Lucro)
+  const [globalMargin, setGlobalMargin] = useState<number>(200); // Padrão 200% se falhar busca
+
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1000);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [link, setLink] = useState('');
 
-
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Fetch User Balance
+  // 1. Fetch User Balance & Global Config
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchInitialData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+
       if (user) {
+        // Busca Saldo
         const { data: profile } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', user.id)
           .single();
+        if (profile) setUserBalance(profile.balance);
+      }
 
-        if (profile) {
-          setUserBalance(profile.balance);
-        }
+      // Busca Margem Global
+      const { data: config } = await supabase
+        .from('admin_config')
+        .select('margin_percent')
+        .single();
+
+      if (config) {
+        setGlobalMargin(config.margin_percent);
       }
     };
-    fetchBalance();
+    fetchInitialData();
   }, []);
 
-  // Fetch Services on Load
+  // 2. Fetch Services on Load
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
+      // Agora buscamos também a custom_margin
       const { data, error } = await supabase
         .from('services')
         .select('*');
@@ -74,17 +87,12 @@ const NewOrder: React.FC = () => {
         const categoryParam = params.get('category');
 
         if (categoryParam) {
-          // Try exact match first (case insensitive)
           const exactMatch = uniqueCategories.find(c => c.toLowerCase() === categoryParam.toLowerCase());
-
           if (exactMatch) {
             setSelectedCategory(exactMatch);
           } else {
-            // Fallback to partial match if exact match fails
             const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
-            if (match) {
-              setSelectedCategory(match);
-            }
+            if (match) setSelectedCategory(match);
           }
         }
       }
@@ -96,24 +104,34 @@ const NewOrder: React.FC = () => {
 
   const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
 
-  // Calculate Total
+  // ==========================================================================
+  // 💰 LÓGICA DE PREÇO INTELIGENTE (CÁLCULO DE LUCRO)
+  // ==========================================================================
+  const getFinalPricePer1k = (service: Service | undefined) => {
+    if (!service) return 0;
+
+    // Se tiver margem personalizada no serviço, usa ela. Se não, usa a global.
+    const marginToUse = (service.custom_margin !== null && service.custom_margin !== undefined)
+      ? service.custom_margin
+      : globalMargin;
+
+    // Custo * (1 + Margem%) -> Ex: R$ 1.00 * (1 + 200/100) = R$ 3.00
+    return service.rate * (1 + marginToUse / 100);
+  };
+
+  const finalRate = getFinalPricePer1k(selectedService);
+
+  // Calculate Total (Baseado no preço final com lucro)
   const total = selectedService
-    ? (quantity / 1000) * selectedService.rate
+    ? (quantity / 1000) * finalRate
     : 0;
 
   // Filter services logic
   const filteredServices = services.filter(s => {
-    // Check Category Match
-    // If a category is selected, service must belong to it.
-    // If NO category is selected, this condition is true (show all categories).
     return selectedCategory ? s.category === selectedCategory : true;
   });
 
-  // Derived filtered categories (optional: to limit category dropdown based on search? No, keep it simple)
-
   const handleCreateOrder = async () => {
-    // O MODO_TESTE AGORA É LIDO LÁ DO TOPO DO ARQUIVO 👆
-
     if (!selectedService || !link || !quantity) {
       alert('Por favor, preencha todos os campos!');
       return;
@@ -122,29 +140,21 @@ const NewOrder: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1. DEFINIÇÃO RIGOROSA DO NOME
-      // Removemos o fallback de categoria. Ou é o nome, ou é o ID.
       let nomeParaSalvar = 'Serviço Indefinido';
-
       if (selectedService) {
-        if (selectedService.name && selectedService.name.length > 3) {
-          nomeParaSalvar = selectedService.name;
-        } else {
-          // Se não tiver nome, usa o ID para sabermos que falhou
-          nomeParaSalvar = `Serviço ID: ${selectedService.service_id} (Nome não encontrado)`;
-        }
+        nomeParaSalvar = (selectedService.name && selectedService.name.length > 3)
+          ? selectedService.name
+          : `Serviço ID: ${selectedService.service_id}`;
       }
 
-      // Debug no Console (Ajuda a ver o que está acontecendo se der F12)
       console.log("Tentando salvar serviço:", nomeParaSalvar);
 
-      // 2. PREPARAÇÃO
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não logado');
 
       let externalOrderId = null;
 
-      // 3. ENVIO (TESTE OU REAL)
+      // ENVIO (TESTE OU REAL)
       if (MODO_TESTE) {
         console.log("MODO TESTE: Pedido simulado.");
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -166,15 +176,15 @@ const NewOrder: React.FC = () => {
         externalOrderId = apiResponse.order;
       }
 
-      // 4. SALVAR NO BANCO LOCAL
+      // SALVAR NO BANCO LOCAL COM O PREÇO DE VENDA (COM LUCRO)
       const { error: dbError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          service: nomeParaSalvar, // <--- CAMPO CRÍTICO
+          service: nomeParaSalvar,
           link: link,
           quantity: Number(quantity),
-          charge: (selectedService.rate / 1000) * Number(quantity),
+          charge: total, // <--- COBRANÇA CORRETA (PREÇO FINAL)
           status: 'pending',
           external_id: externalOrderId
         });
@@ -224,7 +234,7 @@ const NewOrder: React.FC = () => {
                     value={selectedCategory}
                     onChange={(e) => {
                       setSelectedCategory(e.target.value);
-                      setSelectedServiceId(''); // Reset service when category changes
+                      setSelectedServiceId('');
                     }}
                   >
                     <option value="" disabled>Selecione uma categoria...</option>
@@ -256,11 +266,15 @@ const NewOrder: React.FC = () => {
                         ? "Nenhum serviço disponível."
                         : "Escolha o tipo de serviço..."}
                     </option>
-                    {filteredServices.map(service => (
-                      <option key={service.service_id} value={service.service_id}>
-                        {service.service_id} - {service.name} - R$ {Number(service.rate).toFixed(2)}/k
-                      </option>
-                    ))}
+                    {filteredServices.map(service => {
+                      // Calcula o preço para exibir no dropdown também
+                      const pricePerK = getFinalPricePer1k(service);
+                      return (
+                        <option key={service.service_id} value={service.service_id}>
+                          {service.service_id} - {service.name} - R$ {pricePerK.toFixed(2)}/k
+                        </option>
+                      );
+                    })}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
                     <span className="material-symbols-outlined">expand_more</span>
@@ -278,7 +292,6 @@ const NewOrder: React.FC = () => {
                       <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Min/Max: <span className="text-white">{selectedService.min} / {selectedService.max}</span></li>
                       <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary"></span>Tipo: <span className="text-white">{selectedService.type}</span></li>
                     </ul>
-                    {/* Description removed from here to move to right column */}
                   </div>
                 </div>
               )}
@@ -337,7 +350,7 @@ const NewOrder: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-secondary">Preço por 1k:</span>
-                  <span className="text-sm font-medium text-white">{selectedService ? `R$ ${Number(selectedService.rate).toFixed(2)}` : '-'}</span>
+                  <span className="text-sm font-medium text-white">{selectedService ? `R$ ${finalRate.toFixed(2)}` : '-'}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-secondary">Quantidade:</span>
