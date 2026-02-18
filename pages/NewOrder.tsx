@@ -3,21 +3,21 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 // ============================================================================
-// 🚨 MODO DE TESTE 🚨
+// 🚨 INTERRUPTOR DO MODO DE TESTE 🚨
 // ============================================================================
-const MODO_TESTE = true; // true = Simula pedido | false = Gasta saldo real
+const MODO_TESTE = true; // true = Simula | false = Real
 // ============================================================================
 
 interface Service {
   service_id: number;
   name: string;
   category: string;
-  rate: number; // Preço de Custo (Vem do banco baixo, ex: 0.50)
+  rate: number; // Preço de Custo (Baixo)
   min: number;
   max: number;
   type: string;
   description?: string;
-  custom_margin?: number | null; // Margem personalizada
+  custom_margin?: number | null;
 }
 
 const NewOrder: React.FC = () => {
@@ -25,7 +25,7 @@ const NewOrder: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 💰 Configuração de Lucro (Padrão 200% se falhar a busca)
+  // Margem Padrão (Começa em 200% para garantir lucro mesmo se falhar a busca)
   const [globalMargin, setGlobalMargin] = useState<number>(200);
 
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -37,13 +37,12 @@ const NewOrder: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Busca Saldo e Configuração de Margem
+  // 1. Busca Saldo e Configuração
   useEffect(() => {
     const fetchInitialData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        // Busca Saldo do Usuário
         const { data: profile } = await supabase
           .from('profiles')
           .select('balance')
@@ -52,8 +51,7 @@ const NewOrder: React.FC = () => {
         if (profile) setUserBalance(profile.balance);
       }
 
-      // Busca Margem Global da tabela admin_config
-      // Se der erro de permissão (RLS), ele mantém o padrão 200 definido no useState
+      // Busca Margem Global
       const { data: config } = await supabase
         .from('admin_config')
         .select('margin_percent')
@@ -70,17 +68,13 @@ const NewOrder: React.FC = () => {
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
-      // Busca serviços incluindo a coluna custom_margin
-      const { data, error } = await supabase
-        .from('services')
-        .select('*');
+      const { data, error } = await supabase.from('services').select('*');
 
       if (!error && data) {
         setServices(data);
         const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category)));
         setCategories(uniqueCategories);
 
-        // Lógica de URL params (category=...)
         const params = new URLSearchParams(location.search);
         const categoryParam = params.get('category');
         if (categoryParam) {
@@ -97,82 +91,74 @@ const NewOrder: React.FC = () => {
   const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
 
   // ==========================================================================
-  // 🧮 A MÁGICA DO PREÇO (Custo -> Venda)
+  // 💰 CALCULADORA DE PREÇO REAL
   // ==========================================================================
   const getFinalPricePer1k = (service: Service | undefined) => {
     if (!service) return 0;
 
-    // Verifica se tem margem personalizada, senão usa a global
+    // Define qual margem usar (Personalizada ou Global)
     const marginToUse = (service.custom_margin !== null && service.custom_margin !== undefined)
       ? service.custom_margin
       : globalMargin;
 
-    // FÓRMULA: Custo * (1 + Porcentagem/100)
-    // Ex: 0.50 * (1 + 2) = 1.50
+    // Custo * (1 + Margem/100). Ex: 0.50 * (1 + 2) = 1.50
     return service.rate * (1 + marginToUse / 100);
   };
 
-  // Preço final calculado para o serviço selecionado
   const finalRate = getFinalPricePer1k(selectedService);
-
-  // Total a pagar (Baseado no preço final)
-  const total = selectedService
-    ? (quantity / 1000) * finalRate
-    : 0;
+  const total = selectedService ? (quantity / 1000) * finalRate : 0;
 
   const filteredServices = services.filter(s => {
     return selectedCategory ? s.category === selectedCategory : true;
   });
 
   const handleCreateOrder = async () => {
-    if (!selectedService || !link || !quantity) return alert('Preencha tudo!');
+    if (!selectedService || !link || !quantity) return alert('Preencha todos os campos!');
+
     setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não logado');
 
-      // Nome do serviço para histórico
-      const nomeServico = selectedService.name || `Serviço ${selectedService.service_id}`;
+      // Nome salvo com ID para facilitar suporte
+      // VOLTAMOS COM O ID NO NOME AQUI TAMBÉM
+      const nomeParaSalvar = `${selectedService.service_id} - ${selectedService.name}`;
 
       let externalOrderId = null;
 
-      // Envio para API (Simulado ou Real)
       if (MODO_TESTE) {
-        await new Promise(r => setTimeout(r, 800)); // Fake delay
-        externalOrderId = 999000 + Math.floor(Math.random() * 1000);
+        await new Promise(r => setTimeout(r, 800));
+        externalOrderId = 888000 + Math.floor(Math.random() * 1000);
       } else {
-        // ... Lógica real de API aqui ...
-        // Importante: No modo real, você enviaria o ID original. 
-        // A API do fornecedor cobra o custo (0.50), você cobra o cliente (1.50)
-        // O lucro fica no seu saldo.
         const { data: apiResponse, error } = await supabase.functions.invoke('place-order', {
           body: { service: selectedService.service_id, link, quantity }
         });
         if (error) throw error;
-        externalOrderId = apiResponse?.order;
+        if (!apiResponse || apiResponse.error) throw new Error('Erro na API do fornecedor.');
+        externalOrderId = apiResponse.order;
       }
 
-      // SALVAR PEDIDO NO BANCO (Com o valor que o cliente PAGOU)
       const { error: dbError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          service: nomeServico,
+          service: nomeParaSalvar,
           link: link,
           quantity: Number(quantity),
-          charge: total, // <--- SALVA O TOTAL COM LUCRO
+          charge: total, // Salva o valor COM LUCRO
           status: 'pending',
           external_id: externalOrderId
         });
 
       if (dbError) throw dbError;
 
-      alert('Pedido realizado com sucesso!');
+      alert(MODO_TESTE ? 'PEDIDO TESTE REALIZADO!' : 'Pedido realizado com sucesso!');
       setLink('');
       setQuantity(1000);
 
     } catch (error: any) {
+      console.error(error);
       alert('Erro: ' + error.message);
     } finally {
       setLoading(false);
@@ -183,52 +169,71 @@ const NewOrder: React.FC = () => {
     <div className="max-w-7xl mx-auto w-full pb-32">
       <div className="mb-8">
         <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
-        <p className="text-text-secondary">Selecione o serviço para impulsionar suas redes.</p>
+        <p className="text-text-secondary">Impulsione suas redes agora.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Coluna Esquerda: Formulário */}
+        {/* Esquerda */}
         <div className="lg:col-span-8 bg-card-dark rounded-xl border border-border-dark p-6">
 
           {/* Categoria */}
           <div className="mb-6">
-            <label className="text-white text-sm font-bold mb-2 block">Categoria</label>
-            <select
-              className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
-              value={selectedCategory}
-              onChange={e => { setSelectedCategory(e.target.value); setSelectedServiceId(''); }}
-            >
-              <option value="" disabled>Selecione...</option>
-              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+            <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px]">category</span> Categoria
+            </label>
+            <div className="relative">
+              <select
+                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10"
+                value={selectedCategory}
+                onChange={e => { setSelectedCategory(e.target.value); setSelectedServiceId(''); }}
+              >
+                <option value="" disabled>Selecione...</option>
+                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+                <span className="material-symbols-outlined">expand_more</span>
+              </div>
+            </div>
           </div>
 
           {/* Serviço */}
           <div className="mb-6">
-            <label className="text-white text-sm font-bold mb-2 block">Serviço</label>
-            <select
-              className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
-              value={selectedServiceId}
-              onChange={e => setSelectedServiceId(e.target.value)}
-              disabled={!selectedCategory}
-            >
-              <option value="" disabled>Escolha o serviço...</option>
-              {filteredServices.map(service => {
-                // EXIBE O PREÇO JÁ CALCULADO NO DROPDOWN
-                const price = getFinalPricePer1k(service);
-                return (
-                  <option key={service.service_id} value={service.service_id}>
-                    {service.name} - R$ {price.toFixed(2)}/k
-                  </option>
-                );
-              })}
-            </select>
+            <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px]">design_services</span> Serviço
+            </label>
+            <div className="relative">
+              <select
+                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10 disabled:opacity-50"
+                value={selectedServiceId}
+                onChange={e => setSelectedServiceId(e.target.value)}
+                disabled={!selectedCategory}
+              >
+                <option value="" disabled>
+                  {filteredServices.length === 0 ? "Nenhum serviço disponível" : "Escolha o serviço..."}
+                </option>
+                {filteredServices.map(service => {
+                  // CÁLCULO VISUAL DO PREÇO
+                  const price = getFinalPricePer1k(service);
+                  return (
+                    <option key={service.service_id} value={service.service_id}>
+                      {/* AQUI ESTÁ A CORREÇÃO: ID + NOME + PREÇO */}
+                      {service.service_id} - {service.name} - R$ {price.toFixed(2)}/k
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+                <span className="material-symbols-outlined">expand_more</span>
+              </div>
+            </div>
           </div>
 
           {/* Link e Quantidade */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-white text-sm font-bold mb-2 block">Link</label>
+              <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">link</span> Link
+              </label>
               <input
                 type="url"
                 className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
@@ -238,39 +243,59 @@ const NewOrder: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-white text-sm font-bold mb-2 block">Quantidade</label>
+              <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">numbers</span> Quantidade
+              </label>
               <input
                 type="number"
                 className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
                 value={quantity}
                 onChange={e => setQuantity(Number(e.target.value))}
               />
-              <div className="text-xs text-slate-500 mt-1 flex justify-between">
-                <span>Min: {selectedService?.min || 100}</span>
+              <div className="text-xs text-slate-500 mt-1 flex justify-between px-1">
+                <span>Mín: {selectedService?.min || 100}</span>
                 <span>Max: {selectedService?.max || '∞'}</span>
               </div>
             </div>
           </div>
+
+          {/* Info Box */}
+          {selectedService && (
+            <div className="mt-6 bg-[#137fec]/10 border border-primary/20 rounded-lg p-4 flex gap-4 items-start">
+              <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+              <div className="text-sm text-text-secondary space-y-1">
+                <p className="text-white font-medium">Detalhes (ID: {selectedService.service_id})</p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+                  <li>Min/Max: <span className="text-white">{selectedService.min} / {selectedService.max}</span></li>
+                  <li>Tipo: <span className="text-white">{selectedService.type}</span></li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Coluna Direita: Resumo */}
+        {/* Direita: Resumo */}
         <div className="lg:col-span-4 relative">
-          <div className="sticky top-6 bg-card-dark rounded-xl border border-border-dark p-6">
-            <h3 className="text-lg font-bold text-white mb-4 border-b border-slate-700 pb-2">Resumo</h3>
+          <div className="sticky top-6 bg-card-dark rounded-xl border border-border-dark p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-dark">
+              <h3 className="text-lg font-bold text-white">Resumo</h3>
+              <span className="material-symbols-outlined text-text-secondary">receipt_long</span>
+            </div>
 
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-slate-400 text-sm">
-                <span>Serviço:</span>
-                <span className="text-white font-medium text-right w-40 truncate">{selectedService?.name || '-'}</span>
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-sm text-slate-400">Serviço:</span>
+                <span className="text-sm text-white font-medium text-right w-40 truncate">
+                  {selectedService ? `${selectedService.service_id} - ${selectedService.name}` : '-'}
+                </span>
               </div>
-              <div className="flex justify-between text-slate-400 text-sm">
+              <div className="flex justify-between text-sm text-slate-400">
                 <span>Preço por 1k:</span>
-                {/* MOSTRA O PREÇO FINAL (COM LUCRO) */}
                 <span className="text-white font-medium">
                   {selectedService ? `R$ ${finalRate.toFixed(2)}` : '-'}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-400 text-sm">
+              <div className="flex justify-between text-sm text-slate-400">
                 <span>Quantidade:</span>
                 <span className="text-white font-medium">{quantity}</span>
               </div>
@@ -279,21 +304,21 @@ const NewOrder: React.FC = () => {
             <div className="border-t border-slate-700 pt-4">
               <div className="flex justify-between items-end mb-1">
                 <span className="text-slate-300">Total</span>
-                {/* MOSTRA O TOTAL FINAL (COM LUCRO) */}
                 <span className="text-3xl font-black text-primary">
                   R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <p className="text-right text-xs text-slate-500 mb-4">
+              <p className="text-right text-xs text-slate-500 mb-6">
                 Saldo: R$ {userBalance?.toFixed(2) || '0.00'}
               </p>
 
               <button
                 onClick={handleCreateOrder}
-                disabled={!selectedService || total === 0 || loading}
-                className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
+                disabled={!selectedService || total === 0 || loading || (userBalance !== null && userBalance < total)}
+                className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {loading ? 'Processando...' : 'Confirmar Pedido'}
+                {loading ? 'Processando...' : 'Finalizar Pedido'}
+                {!loading && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>}
               </button>
             </div>
           </div>
