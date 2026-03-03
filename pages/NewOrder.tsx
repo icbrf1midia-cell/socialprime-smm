@@ -72,119 +72,118 @@ const NewOrder: React.FC = () => {
 
       if (!error && data) {
         setServices(data);
-        const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category))));
-  setCategories(uniqueCategories);
+        // CORRIGIDO AQUI: Removido o parêntese extra que estava quebrando o código
+        const uniqueCategories = Array.from(new Set(data.map((s: Service) => s.category)));
+        setCategories(uniqueCategories);
 
-  const params = new URLSearchParams(location.search);
-  const categoryParam = params.get('category');
-  if (categoryParam) {
-    const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
-    if (match) setSelectedCategory(match);
-  }
-}
-setLoading(false);
+        const params = new URLSearchParams(location.search);
+        const categoryParam = params.get('category');
+        if (categoryParam) {
+          const match = uniqueCategories.find(c => c.toLowerCase().includes(categoryParam.toLowerCase()));
+          if (match) setSelectedCategory(match);
+        }
+      }
+      setLoading(false);
     };
 
-fetchServices();
+    fetchServices();
   }, [location.search]);
 
-const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
+  const selectedService = services.find(s => s.service_id.toString() === selectedServiceId);
 
-// ==========================================================================
-// 💰 CALCULADORA DE PREÇO REAL
-// ==========================================================================
-const getFinalPricePer1k = (service: Service | undefined) => {
-  if (!service) return 0;
+  // ==========================================================================
+  // 💰 CALCULADORA DE PREÇO REAL
+  // ==========================================================================
+  const getFinalPricePer1k = (service: Service | undefined) => {
+    if (!service) return 0;
 
-  // Define qual margem usar (Personalizada ou Global)
-  const marginToUse = (service.custom_margin !== null && service.custom_margin !== undefined)
-    ? service.custom_margin
-    : globalMargin;
+    // Define qual margem usar (Personalizada ou Global)
+    const marginToUse = (service.custom_margin !== null && service.custom_margin !== undefined)
+      ? service.custom_margin
+      : globalMargin;
 
-  // Custo * (1 + Margem/100). Ex: 0.50 * (1 + 2) = 1.50
-  return service.rate * (1 + marginToUse / 100);
-};
+    // Custo * (1 + Margem/100). Ex: 0.50 * (1 + 2) = 1.50
+    return service.rate * (1 + marginToUse / 100);
+  };
 
-const finalRate = getFinalPricePer1k(selectedService);
-const total = selectedService ? (quantity / 1000) * finalRate : 0;
+  const finalRate = getFinalPricePer1k(selectedService);
+  const total = selectedService ? (quantity / 1000) * finalRate : 0;
 
-const filteredServices = services.filter(s => {
-  return selectedCategory ? s.category === selectedCategory : true;
-});
+  const filteredServices = services.filter(s => {
+    return selectedCategory ? s.category === selectedCategory : true;
+  });
 
-const handleCreateOrder = async () => {
-  if (!selectedService || !link || !quantity) return alert('Preencha todos os campos!');
+  const handleCreateOrder = async () => {
+    if (!selectedService || !link || !quantity) return alert('Preencha todos os campos!');
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não logado');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não logado');
 
-    // Nome salvo com ID para facilitar suporte
-    const nomeParaSalvar = `${selectedService.service_id} - ${selectedService.name}`;
+      // Nome salvo com ID para facilitar suporte
+      const nomeParaSalvar = `${selectedService.service_id} - ${selectedService.name}`;
 
-    let externalOrderId = null;
+      let externalOrderId = null;
 
-    if (MODO_TESTE) {
-      await new Promise(r => setTimeout(r, 800));
-      externalOrderId = 888000 + Math.floor(Math.random() * 1000);
-    } else {
-      const { data: apiResponse, error } = await supabase.functions.invoke('place-order', {
-        body: { service: selectedService.service_id, link, quantity }
-      });
-      if (error) throw error;
-      if (!apiResponse || apiResponse.error) throw new Error('Erro na API do fornecedor.');
-      externalOrderId = apiResponse.order;
+      if (MODO_TESTE) {
+        await new Promise(r => setTimeout(r, 800));
+        externalOrderId = 888000 + Math.floor(Math.random() * 1000);
+      } else {
+        const { data: apiResponse, error } = await supabase.functions.invoke('place-order', {
+          body: { service: selectedService.service_id, link, quantity }
+        });
+        if (error) throw error;
+        if (!apiResponse || apiResponse.error) throw new Error('Erro na API do fornecedor.');
+        externalOrderId = apiResponse.order;
+      }
+
+      const { error: dbError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          service: nomeParaSalvar,
+          link: link,
+          quantity: Number(quantity),
+          charge: total, // Salva o valor COM LUCRO
+          status: 'pending',
+          external_id: externalOrderId
+        });
+
+      if (dbError) throw dbError;
+
+      alert(MODO_TESTE ? 'PEDIDO TESTE REALIZADO!' : 'Pedido realizado com sucesso!');
+      setLink('');
+      setQuantity(1000);
+
+    } catch (error: any) {
+      console.error(error);
+      alert('Erro: ' + error.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const { error: dbError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: user.id,
-        service: nomeParaSalvar,
-        link: link,
-        quantity: Number(quantity),
-        charge: total, // Salva o valor COM LUCRO
-        status: 'pending',
-        external_id: externalOrderId
-      });
+  return (
+    <div className="max-w-7xl mx-auto w-full pb-32">
+      <div className="mb-8">
+        <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
+        <p className="text-text-secondary">Impulsione suas redes agora.</p>
+      </div>
 
-    if (dbError) throw dbError;
-
-    alert(MODO_TESTE ? 'PEDIDO TESTE REALIZADO!' : 'Pedido realizado com sucesso!');
-    setLink('');
-    setQuantity(1000);
-
-  } catch (error: any) {
-    console.error(error);
-    alert('Erro: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-return (
-  <div className="max-w-7xl mx-auto w-full pb-32">
-    <div className="mb-8">
-      <h2 className="text-3xl font-black tracking-tight text-white mb-2">Novo Pedido</h2>
-      <p className="text-text-secondary">Impulsione suas redes agora.</p>
-    </div>
-
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-      {/* ==================== COLUNA ESQUERDA (FORMULÁRIO + INFO) ==================== */}
-      <div className="lg:col-span-8 space-y-6">
-        <div className="bg-card-dark rounded-xl border border-border-dark p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Esquerda */}
+        <div className="lg:col-span-8 bg-card-dark rounded-xl border border-border-dark p-6">
 
           {/* Categoria */}
           <div className="mb-6">
-            <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+            <label className="text-white text-sm font-bold mb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[18px]">category</span> Categoria
             </label>
             <div className="relative">
               <select
-                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10"
                 value={selectedCategory}
                 onChange={e => { setSelectedCategory(e.target.value); setSelectedServiceId(''); }}
               >
@@ -199,12 +198,12 @@ return (
 
           {/* Serviço */}
           <div className="mb-6">
-            <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+            <label className="text-white text-sm font-bold mb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[18px]">design_services</span> Serviço
             </label>
             <div className="relative">
               <select
-                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10 disabled:opacity-50 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="w-full appearance-none bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg pr-10 disabled:opacity-50"
                 value={selectedServiceId}
                 onChange={e => setSelectedServiceId(e.target.value)}
                 disabled={!selectedCategory}
@@ -231,24 +230,24 @@ return (
           {/* Link e Quantidade */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+              <label className="text-white text-sm font-bold mb-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[18px]">link</span> Link
               </label>
               <input
                 type="url"
-                className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
                 placeholder="https://..."
                 value={link}
                 onChange={e => setLink(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-white text-sm font-bold mb-2 block flex items-center gap-2">
+              <label className="text-white text-sm font-bold mb-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[18px]">numbers</span> Quantidade
               </label>
               <input
                 type="number"
-                className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="w-full bg-[#111a22] border border-slate-700 text-white p-3 rounded-lg"
                 value={quantity}
                 onChange={e => setQuantity(Number(e.target.value))}
               />
@@ -258,90 +257,90 @@ return (
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Info Box COM DESCRIÇÃO RESTAURADA (Movido para fora da box de formulário, mas ainda na esquerda) */}
-        {selectedService && (
-          <div className="bg-[#137fec]/10 border border-primary/20 rounded-xl p-6 flex gap-4 items-start shadow-sm">
-            <span className="material-symbols-outlined text-primary mt-0.5 text-2xl">info</span>
-            <div className="w-full">
-              <p className="text-white font-bold mb-3 text-lg">Detalhes do Serviço (ID: {selectedService.service_id})</p>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mb-4 border-b border-primary/20 pb-4">
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span><span className="text-slate-400 text-sm">Min/Max:</span> <span className="text-white font-medium text-sm">{selectedService.min} / {selectedService.max}</span></li>
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span><span className="text-slate-400 text-sm">Tipo:</span> <span className="text-white font-medium text-sm">{selectedService.type}</span></li>
-              </ul>
+          {/* Info Box COM DESCRIÇÃO RESTAURADA */}
+          {selectedService && (
+            <div className="mt-6 bg-[#137fec]/10 border border-primary/20 rounded-lg p-4 flex gap-4 items-start">
+              <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+              <div className="text-sm text-text-secondary space-y-1 w-full">
+                <p className="text-white font-medium mb-2">Detalhes do Serviço (ID: {selectedService.service_id})</p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mb-4 border-b border-primary/20 pb-3">
+                  <li>Min/Max: <span className="text-white">{selectedService.min} / {selectedService.max}</span></li>
+                  <li>Tipo: <span className="text-white">{selectedService.type}</span></li>
+                </ul>
 
-              {/* AQUI ESTÁ A MÁGICA DAS DESCRIÇÕES */}
-              <div className="mt-2">
-                {selectedService.description && selectedService.description.length > 5 ? (
-                  <div
-                    className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed html-description-container"
-                    dangerouslySetInnerHTML={{ __html: selectedService.description }}
-                  />
-                ) : (
-                  <p className="text-sm text-slate-500 italic">
-                    Descrição não fornecida pelo provedor para este serviço.
-                  </p>
-                )}
+                {/* AQUI ESTÁ A MÁGICA DAS DESCRIÇÕES */}
+                <div className="mt-2">
+                  {selectedService.description && selectedService.description.length > 5 ? (
+                    <div
+                      className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: selectedService.description }}
+                    />
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">
+                      Descrição não fornecida pelo operador para este serviço.
+                    </p>
+                  )}
+                </div>
+
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* ==================== COLUNA DIREITA (RESUMO STICKY) ==================== */}
-      <div className="lg:col-span-4 relative">
-        <div className="sticky top-6 bg-card-dark rounded-xl border border-border-dark p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-dark">
-            <h3 className="text-lg font-bold text-white">Resumo do Pedido</h3>
-            <span className="material-symbols-outlined text-text-secondary">receipt_long</span>
-          </div>
+        </div>
 
-          <div className="space-y-4 mb-6">
-            <div className="flex justify-between items-start gap-4">
-              <span className="text-sm text-slate-400">Serviço:</span>
-              <span className="text-sm text-white font-medium text-right w-40 truncate">
-                {selectedService ? `${selectedService.service_id} - ${selectedService.name}` : '-'}
-              </span>
+        {/* Direita: Resumo */}
+        <div className="lg:col-span-4 relative">
+          <div className="sticky top-6 bg-card-dark rounded-xl border border-border-dark p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-dark">
+              <h3 className="text-lg font-bold text-white">Resumo</h3>
+              <span className="material-symbols-outlined text-text-secondary">receipt_long</span>
             </div>
-            <div className="flex justify-between text-sm text-slate-400">
-              <span>Preço por 1k:</span>
-              <span className="text-white font-medium">
-                {selectedService ? `R$ ${finalRate.toFixed(2)}` : '-'}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm text-slate-400">
-              <span>Quantidade:</span>
-              <span className="text-white font-medium">{quantity}</span>
-            </div>
-          </div>
 
-          <div className="border-t border-slate-700 pt-4">
-            <div className="flex justify-between items-end mb-1">
-              <span className="text-slate-300">Total</span>
-              <span className="text-3xl font-black text-primary">
-                R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-sm text-slate-400">Serviço:</span>
+                <span className="text-sm text-white font-medium text-right w-40 truncate">
+                  {selectedService ? `${selectedService.service_id} - ${selectedService.name}` : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Preço por 1k:</span>
+                <span className="text-white font-medium">
+                  {selectedService ? `R$ ${finalRate.toFixed(2)}` : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Quantidade:</span>
+                <span className="text-white font-medium">{quantity}</span>
+              </div>
             </div>
-            <p className="text-right text-xs text-slate-500 mb-6">
-              Saldo: R$ {userBalance?.toFixed(2) || '0.00'}
-            </p>
 
-            <button
-              onClick={handleCreateOrder}
-              disabled={!selectedService || total === 0 || loading || (userBalance !== null && userBalance < total)}
-              className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {loading ? 'Processando...' : 'Finalizar Pedido'}
-              {!loading && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>}
-            </button>
+            <div className="border-t border-slate-700 pt-4">
+              <div className="flex justify-between items-end mb-1">
+                <span className="text-slate-300">Total</span>
+                <span className="text-3xl font-black text-primary">
+                  R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className="text-right text-xs text-slate-500 mb-6">
+                Saldo: R$ {userBalance?.toFixed(2) || '0.00'}
+              </p>
+
+              <button
+                onClick={handleCreateOrder}
+                disabled={!selectedService || total === 0 || loading || (userBalance !== null && userBalance < total)}
+                className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? 'Processando...' : 'Finalizar Pedido'}
+                {!loading && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
-  </div>
-);
+  );
 };
 
 export default NewOrder;
